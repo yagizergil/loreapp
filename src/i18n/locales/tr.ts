@@ -268,6 +268,10 @@ const tr = {
     errorUnavailable: 'Bu plan şu an kullanılamıyor. Lütfen daha sonra tekrar dene.',
     restoreNoneTitle: 'Geri yüklenecek bir şey yok',
     restoreNoneBody:  'Bu hesap için önceki bir satın alma bulunamadı.',
+    successEyebrow:   'ARTIK PREMIUMSUN',
+    successTitle:     'Premium\'a Hoş Geldin!',
+    successSubtitle:  'Aboneliğin aktif. Tüm soruları sınırsızca keşfet.',
+    successCta:       'Keşfetmeye Başla',
   },
 
   // ─── Ask question modal ───────────────────────────────────────────────────────

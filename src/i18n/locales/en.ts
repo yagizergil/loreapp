@@ -268,6 +268,10 @@ const en = {
     errorUnavailable: 'This plan is not available right now. Please try again later.',
     restoreNoneTitle: 'Nothing to restore',
     restoreNoneBody:  'No previous purchase was found for this account.',
+    successEyebrow:   'YOU\'RE IN',
+    successTitle:     'Welcome to Premium!',
+    successSubtitle:  'Your subscription is active. Explore every question, with no limits.',
+    successCta:       'Start Exploring',
   },
 
   // ─── Ask question modal ───────────────────────────────────────────────────────

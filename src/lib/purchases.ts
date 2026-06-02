@@ -46,7 +46,17 @@ export async function configurePurchases(appUserId: string): Promise<void> {
 
 export function isPremiumFromInfo(info: CustomerInfo | null): boolean {
   if (!info) return false;
-  return info.entitlements.active[ENTITLEMENT_ID] !== undefined;
+  // 1) Preferred: the named entitlement is active.
+  if (info.entitlements.active[ENTITLEMENT_ID] !== undefined) return true;
+  // 2) Robust: ANY active entitlement counts. The app sells a single
+  //    subscription, so any active entitlement means the user is Pro. This
+  //    protects against an entitlement-identifier mismatch in the RC dashboard.
+  if (Object.keys(info.entitlements.active ?? {}).length > 0) return true;
+  // 3) Last-resort fallback: an active store subscription even when no
+  //    entitlement is mapped in RevenueCat (a common dashboard misconfig that
+  //    otherwise leaves a paying user "subscribed but not premium").
+  if ((info.activeSubscriptions?.length ?? 0) > 0) return true;
+  return false;
 }
 
 export async function getCustomerInfo(): Promise<CustomerInfo | null> {

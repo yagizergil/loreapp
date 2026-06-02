@@ -87,11 +87,25 @@ export default function PaywallScreen() {
 
   const [plan, setPlan] = useState<Plan>('yearly');
   const [busy, setBusy] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  // Eğer kullanıcı zaten premium'sa (restore / başka cihaz / yenileme) ekranı kapat.
+  // Kullanıcı bu ekrana geldiğinde zaten premium miydi? (mount anındaki değer)
+  const wasPremiumAtMount = useRef(isPremium);
+
+  // Zaten premium'ken (yanlışlıkla / başka cihazdan) açıldıysa sessizce kapat.
   useEffect(() => {
-    if (isPremium) navigation.goBack();
-  }, [isPremium, navigation]);
+    if (wasPremiumAtMount.current && isPremium) navigation.goBack();
+    // sadece mount'ta
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Premium bu oturumda aktifleşirse (satın alma / geri yükleme / yenileme),
+  // doğrudan kapatmak yerine "Premium'a Hoş Geldin" ekranını göster.
+  useEffect(() => {
+    if (isPremium && !wasPremiumAtMount.current && !showSuccess) {
+      setShowSuccess(true);
+    }
+  }, [isPremium, showSuccess]);
 
   // Subtle pulse on CTA
   const pulse = useRef(new Animated.Value(1)).current;
@@ -135,9 +149,11 @@ export default function PaywallScreen() {
     setBusy(true);
     const res = await purchase(pkg);
     setBusy(false);
-    if (res.ok && res.isPremium) {
-      navigation.goBack(); // isPremium effect de kapatır; güvenli.
-    } else if (!res.ok && !res.cancelled) {
+    if (res.ok) {
+      // Satın alma başarılı: premium tespit edilse de edilmese de (RC senkron
+      // gecikmesine karşı) başarı ekranını göster. mirror zaten premium'u açar.
+      setShowSuccess(true);
+    } else if (!res.cancelled) {
       Alert.alert(t('paywall.errorTitle'), t('paywall.errorBody'));
     }
   }
@@ -148,7 +164,7 @@ export default function PaywallScreen() {
     const res = await restore();
     setBusy(false);
     if (res.ok && res.isPremium) {
-      navigation.goBack();
+      setShowSuccess(true);
     } else if (res.ok) {
       Alert.alert(t('paywall.restoreNoneTitle'), t('paywall.restoreNoneBody'));
     } else {
@@ -168,6 +184,39 @@ export default function PaywallScreen() {
   const trialNote  = plan === 'yearly'
     ? t('paywall.trialNoteYearly', { price: yearlyPriceStr })
     : t('paywall.trialNoteMonthly', { price: monthlyPriceStr });
+
+  // ── Başarı ekranı (Premium'a Hoş Geldin) ────────────────────────────────────
+  if (showSuccess) {
+    return (
+      <View style={[s.root, { paddingTop: insets.top }]}>
+        <View style={s.successWrap}>
+          <View style={s.successSeal}>
+            <View style={s.successCheckL} />
+            <View style={s.successCheckR} />
+          </View>
+
+          <View style={s.eyebrowRow}>
+            <View style={[s.eyebrowDot, { backgroundColor: palette.success }]} />
+            <Text style={[s.eyebrow, { color: palette.success }]}>{t('paywall.successEyebrow')}</Text>
+            <View style={[s.eyebrowDot, { backgroundColor: palette.success }]} />
+          </View>
+
+          <Text style={s.title}>{t('paywall.successTitle')}</Text>
+          <Text style={[s.subtitle, s.successSub]}>{t('paywall.successSubtitle')}</Text>
+        </View>
+
+        <View style={[s.bottom, { paddingBottom: insets.bottom + 8 }]}>
+          <TouchableOpacity
+            style={s.cta}
+            activeOpacity={0.85}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={s.ctaText}>{t('paywall.successCta')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -555,5 +604,48 @@ const s = StyleSheet.create({
     fontSize: fontSize.sm,
     color: palette.ink40,
     paddingVertical: 8,
+  },
+
+  // ── Success screen ───────────────────────────────────────────────────────────
+  successWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  successSeal: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: palette.success + '1A',
+    borderWidth: 2,
+    borderColor: palette.success + '66',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  successCheckL: {
+    position: 'absolute',
+    width: 14,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: palette.success,
+    transform: [{ rotate: '45deg' }],
+    left: 32,
+    top: 52,
+  },
+  successCheckR: {
+    position: 'absolute',
+    width: 26,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: palette.success,
+    transform: [{ rotate: '-45deg' }],
+    right: 26,
+    top: 46,
+  },
+  successSub: {
+    marginTop: 4,
+    paddingHorizontal: spacing.md,
   },
 });

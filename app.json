@@ -2,7 +2,7 @@
   "expo": {
     "name": "Lore",
     "slug": "lore",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -14,7 +14,7 @@
         "NSLocationAlwaysUsageDescription": "Lore, arka planda yeni sorular için bildirim göndermek amacıyla konumunu kullanır.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "8",
+      "buildNumber": "9",
       "bundleIdentifier": "com.yagizergilvokario.lore"
     },
     "android": {
