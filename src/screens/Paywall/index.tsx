@@ -25,6 +25,21 @@ const MONTHLY_PRICE   = '₺99,99';
 const YEARLY_PRICE    = '₺599,99';
 const YEARLY_PER_MO   = '₺50';
 
+/** Free-trial length (in days) from a package's introductory offer, or 0 if
+ *  there is no free trial. A free trial is an intro price of 0. */
+function introTrialDays(pkg: PurchasesPackage | null): number {
+  const ip = (pkg?.product as any)?.introPrice;
+  if (!ip || ip.price !== 0) return 0;
+  const n = ip.periodNumberOfUnits ?? 0;
+  switch (ip.periodUnit) {
+    case 'DAY':   return n;
+    case 'WEEK':  return n * 7;
+    case 'MONTH': return n * 30;
+    case 'YEAR':  return n * 365;
+    default:      return n;
+  }
+}
+
 // ─── Check row ────────────────────────────────────────────────────────────────
 function CheckRow({ text }: { text: string }) {
   return (
@@ -82,8 +97,12 @@ export default function PaywallScreen() {
   const insets     = useSafeAreaInsets();
   const { t }      = useTranslation();
   const trigger    = (route.params as any)?.trigger ?? 'geo';
-  const variant: 'geo' | 'region' | 'limit' =
-    trigger === 'region' ? 'region' : trigger === 'limit' ? 'limit' : 'geo';
+  const count      = (route.params as any)?.count ?? 0;
+  const variant: 'geo' | 'region' | 'limit' | 'welcome' =
+    trigger === 'region' ? 'region'
+    : trigger === 'limit' ? 'limit'
+    : trigger === 'welcome' ? 'welcome'
+    : 'geo';
 
   const { isPremium, offering, purchase, restore } = usePremium();
 
@@ -175,17 +194,53 @@ export default function PaywallScreen() {
   }
 
   const title    = t(`paywall.trig.${variant}.title`);
-  const subtitle = t(`paywall.trig.${variant}.subtitle`);
+  // Kıtlık: çevrede gerçek kilitli soru sayısı varsa alt başlığı onunla değiştir.
+  const subtitle = ((variant === 'geo' || variant === 'region') && count > 0)
+    ? t('paywall.scarcity', { count })
+    : t(`paywall.trig.${variant}.subtitle`);
 
   const benefitsKey = variant === 'region'
     ? 'paywall.benefitsRegion'
     : variant === 'limit' ? 'paywall.benefitsLimit' : 'paywall.benefitsGeo';
   const benefits = t(benefitsKey, { returnObjects: true }) as string[];
 
-  const ctaLabel   = plan === 'yearly' ? t('paywall.ctaTrial') : t('paywall.cta');
-  const trialNote  = plan === 'yearly'
-    ? t('paywall.trialNoteYearly', { price: yearlyPriceStr })
-    : t('paywall.trialNoteMonthly', { price: monthlyPriceStr });
+  // Gerçek ürünün ücretsiz deneme süresini RevenueCat introPrice'ından türet
+  // (sabit metin yerine). Aylık 3 gün / yıllık 7 gün otomatik doğru gösterilir
+  // ve App Store yanıltıcı deneme reddi riski ortadan kalkar.
+  const selectedPkg = plan === 'yearly' ? annualPkg : monthlyPkg;
+  const selectedPriceStr = plan === 'yearly' ? yearlyPriceStr : monthlyPriceStr;
+  const selectedPer = plan === 'yearly' ? t('paywall.yearlyPer') : t('paywall.monthlyPer');
+  const trialDays = introTrialDays(selectedPkg);
+  const hasTrial = trialDays > 0;
+
+  // Her plan kartı kendi deneme süresini göstersin (yıllık 7g / aylık 3g).
+  const yearlyTrialDays  = introTrialDays(annualPkg);
+  const monthlyTrialDays = introTrialDays(monthlyPkg);
+  const yearlySub = yearlyTrialDays > 0
+    ? t('paywall.trialBadge', { days: yearlyTrialDays })
+    : yearlyPriceStr + t('paywall.yearlyPer');
+  const monthlySub = monthlyTrialDays > 0
+    ? t('paywall.trialBadge', { days: monthlyTrialDays })
+    : t('paywall.cancelNote');
+
+  const ctaLabel = hasTrial ? t('paywall.ctaTrialDays', { days: trialDays }) : t('paywall.cta');
+  const trialNote = hasTrial
+    ? t('paywall.trialNoteDays', { days: trialDays, price: selectedPriceStr, per: selectedPer })
+    : t('paywall.noTrialNote', { price: selectedPriceStr, per: selectedPer });
+
+  // Tasarruf çıpası: yıllık planın aylık×12'ye göre ne kadar ucuz olduğunu
+  // gerçek mağaza fiyatlarından hesapla. İkisi de yüklüyse ve anlamlıysa göster.
+  const savingsStr = (() => {
+    if (!monthlyPkg || !annualPkg) return null;
+    const yearAtMonthly = monthlyPkg.product.price * 12;
+    const diff = yearAtMonthly - annualPkg.product.price;
+    if (diff <= 0) return null;
+    const pct = Math.round((diff / yearAtMonthly) * 100);
+    return t('paywall.savings', {
+      amount: fmtCurrency(diff, annualPkg.product.currencyCode),
+      pct,
+    });
+  })();
 
   // ── Başarı ekranı (Premium'a Hoş Geldin) ────────────────────────────────────
   if (showSuccess) {
@@ -263,13 +318,16 @@ export default function PaywallScreen() {
       {/* ── Divider ──────────────────────────────────────────────────────────── */}
       <View style={s.divider} />
 
+      {/* ── Savings anchor ───────────────────────────────────────────────────── */}
+      {savingsStr ? <Text style={s.savings}>{savingsStr}</Text> : null}
+
       {/* ── Plan cards ───────────────────────────────────────────────────────── */}
       <View style={s.plans}>
         <PlanCard
           active={plan === 'yearly'}
           label={t('paywall.yearly')}
           price={yearlyPerMoStr + t('paywall.monthlyPer')}
-          sub={yearlyPriceStr + t('paywall.yearlyPer')}
+          sub={yearlySub}
           badge={t('paywall.yearlyBadge')}
           onPress={() => setPlan('yearly')}
         />
@@ -277,7 +335,7 @@ export default function PaywallScreen() {
           active={plan === 'monthly'}
           label={t('paywall.monthly')}
           price={monthlyPriceStr + t('paywall.monthlyPer')}
-          sub={t('paywall.cancelNote')}
+          sub={monthlySub}
           onPress={() => setPlan('monthly')}
         />
       </View>
@@ -601,6 +659,13 @@ const s = StyleSheet.create({
     color: palette.ink40,
     textAlign: 'center',
     marginBottom: 6,
+  },
+  savings: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 12,
+    color: palette.success,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   legalNote: {
     fontFamily: fontFamily.body,

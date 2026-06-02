@@ -78,6 +78,7 @@ export default function MapScreen() {
   // büyük "teaser" pin gösterilir; tıklayınca paywall (başka şehirler premium).
   const [teaserPin, setTeaserPin] = useState<{ lat: number; lng: number } | null>(null);
   const teaserPinRef = useRef<{ lat: number; lng: number } | null>(null);
+  const teaserCountRef = useRef(0);
 
   // Notification setup — registers push token, schedules local notifications
   useNotifications({
@@ -134,6 +135,7 @@ export default function MapScreen() {
       fetchRegionQuestionCount(center.lat, center.lng, radiusM)
         .then((count) => {
           const next = count > 0 ? center : null;
+          teaserCountRef.current = count;
           teaserPinRef.current = next;
           setTeaserPin(next);
         })
@@ -300,13 +302,14 @@ export default function MapScreen() {
 
   const handlePinPress = useCallback((q: Question) => {
     if (isLocked(q)) {
+      const lockedCount = questions.filter(isLocked).length;
       const parent = navigation.getParent() as any;
-      parent?.navigate('Paywall', { trigger: 'geo' });
+      parent?.navigate('Paywall', { trigger: 'geo', count: lockedCount });
       return;
     }
     setViewedIds((prev) => new Set(prev).add(q.id));
     setSelectedQuestion(q);
-  }, [isLocked, navigation]);
+  }, [isLocked, navigation, questions]);
 
   const [mapRefreshKey, setMapRefreshKey] = useState(0);
 
@@ -417,7 +420,7 @@ export default function MapScreen() {
         {!isPremium && teaserPin && (
           <Marker
             coordinate={{ latitude: teaserPin.lat, longitude: teaserPin.lng }}
-            onPress={() => paywallEvents.show('region')}
+            onPress={() => paywallEvents.show('region', { count: teaserCountRef.current })}
             tracksViewChanges={false}
             anchor={{ x: 0.5, y: 0.5 }}
           >

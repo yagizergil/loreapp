@@ -10,7 +10,8 @@ import { ProfileProvider } from '../lib/ProfileContext';
 import { PremiumProvider } from '../lib/PremiumContext';
 import { mapAskEvent } from '../lib/mapEvents';
 import { authEvents } from '../lib/authEvents';
-import { paywallEvents } from '../lib/premiumEvents';
+import { paywallEvents, PaywallTrigger } from '../lib/premiumEvents';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationEvents } from '../lib/notificationEvents';
 import { UnreadCountsProvider, useUnreadCounts } from '../lib/UnreadCountsContext';
 import { Question, fetchQuestionById } from '../lib/supabase';
@@ -74,7 +75,7 @@ const badge = StyleSheet.create({
 export type RootStackParamList = {
   MainTabs: undefined;
   Answers: { question: Question; profileId: string };
-  Paywall: { trigger?: 'geo' | 'limit' } | undefined;
+  Paywall: { trigger?: PaywallTrigger; count?: number } | undefined;
   Chat: {
     conversationId?: string;
     otherUserId: string;
@@ -199,6 +200,7 @@ interface Props {
 export default function Navigation({ initialProfile }: Props) {
   const [profile, setProfile] = useState<LocalProfile | null>(initialProfile);
   const [upgrading, setUpgrading] = useState<LocalProfile | null>(null);
+  const [justOnboarded, setJustOnboarded] = useState(false);
   const hasProfile = !!profile?.id && !!profile?.nickname;
   const navRef = React.useRef<any>(null);
 
@@ -216,9 +218,30 @@ export default function Navigation({ initialProfile }: Props) {
 
   // Wire paywallEvents so any component can trigger the Paywall screen
   useEffect(() => {
-    paywallEvents.show = (trigger) => navRef.current?.navigate('Paywall', { trigger: trigger ?? 'limit' });
+    paywallEvents.show = (trigger, opts) =>
+      navRef.current?.navigate('Paywall', { trigger: trigger ?? 'limit', count: opts?.count });
     return () => { paywallEvents.show = () => {}; };
   }, []);
+
+  // One-time "welcome" soft paywall right after a fresh onboarding (not on
+  // returning launches, not after an account upgrade). Persisted so it only
+  // ever shows once per install.
+  const WELCOME_PAYWALL_KEY = '@lore/welcome_paywall_seen';
+  useEffect(() => {
+    if (!hasProfile || !justOnboarded) return;
+    setJustOnboarded(false);
+    (async () => {
+      try {
+        const seen = await AsyncStorage.getItem(WELCOME_PAYWALL_KEY);
+        if (seen) return;
+        await AsyncStorage.setItem(WELCOME_PAYWALL_KEY, '1');
+        // Let the main stack mount before navigating to the modal paywall.
+        setTimeout(() => {
+          navRef.current?.navigate('Paywall', { trigger: 'welcome' });
+        }, 900);
+      } catch { /* noop */ }
+    })();
+  }, [hasProfile, justOnboarded]);
 
   // Wire notificationEvents deep-link navigation
   useEffect(() => {
@@ -284,7 +307,7 @@ export default function Navigation({ initialProfile }: Props) {
           </PremiumProvider>
         </ProfileProvider>
       ) : (
-        <OnboardingScreen onComplete={setProfile} />
+        <OnboardingScreen onComplete={(p) => { setProfile(p); setJustOnboarded(true); }} />
       )}
     </NavigationContainer>
   );
