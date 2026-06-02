@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lore — Support / Destek</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6; color: #1a1a1a; background: #fafafa;
+  }
+  @media (prefers-color-scheme: dark) { body { color: #e8e8e8; background: #141414; } a { color: #6ea8ff; } .card { background: #1f1f1f !important; border-color: #333 !important; } }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 20px; margin: 32px 0 8px; }
+  .sub { color: #888; margin: 0 0 24px; font-size: 14px; }
+  .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 20px 22px; margin: 16px 0; }
+  a { color: #2b6cff; }
+  .toggle { display: inline-flex; gap: 8px; margin-bottom: 24px; }
+  .toggle button {
+    border: 1px solid #ccc; background: transparent; color: inherit; padding: 6px 14px;
+    border-radius: 999px; cursor: pointer; font-size: 14px;
+  }
+  .toggle button.active { background: #2b6cff; color: #fff; border-color: #2b6cff; }
+  .lang { display: none; }
+  .lang.show { display: block; }
+  footer { margin-top: 40px; font-size: 13px; color: #999; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toggle">
+    <button id="btn-en" class="active" onclick="setLang('en')">English</button>
+    <button id="btn-tr" onclick="setLang('tr')">Türkçe</button>
+  </div>
+
+  <!-- ENGLISH -->
+  <section id="lang-en" class="lang show">
+    <h1>Lore — Support</h1>
+    <p class="sub">We're here to help.</p>
+
+    <div class="card">
+      <h2>Contact us</h2>
+      <p>For any questions, bug reports, account issues, or feedback about <strong>Lore</strong>, email us:</p>
+      <p><a href="mailto:etkinlikyweb@gmail.com">etkinlikyweb@gmail.com</a></p>
+      <p>We typically respond within 2–3 business days.</p>
+    </div>
+
+    <div class="card">
+      <h2>What is Lore?</h2>
+      <p>Lore is an anonymous, location-based social app where you discover questions
+      asked by people around you on a map, answer them, and message — anonymously — the
+      person behind an answer you liked.</p>
+    </div>
+
+    <div class="card">
+      <h2>Frequently asked</h2>
+      <p><strong>How do I delete my account?</strong><br/>
+      Open the app → Profile → Account → Delete Account. This permanently removes your
+      profile and all your data.</p>
+      <p><strong>How do I turn off notifications?</strong><br/>
+      Disable notifications for Lore in your device Settings, or sign out.</p>
+      <p><strong>How do I manage my subscription?</strong><br/>
+      Subscriptions are handled by the App Store: Settings → your name → Subscriptions.</p>
+    </div>
+
+    <div class="card">
+      <h2>Legal</h2>
+      <p><a href="./privacy.html">Privacy Policy</a> · <a href="./privacy-choices.html">Your Privacy Choices</a></p>
+    </div>
+  </section>
+
+  <!-- TÜRKÇE -->
+  <section id="lang-tr" class="lang">
+    <h1>Lore — Destek</h1>
+    <p class="sub">Yardıma hazırız.</p>
+
+    <div class="card">
+      <h2>Bize ulaşın</h2>
+      <p><strong>Lore</strong> hakkında her türlü soru, hata bildirimi, hesap sorunu veya
+      geri bildirim için bize e-posta gönderin:</p>
+      <p><a href="mailto:etkinlikyweb@gmail.com">etkinlikyweb@gmail.com</a></p>
+      <p>Genellikle 2–3 iş günü içinde yanıt veriyoruz.</p>
+    </div>
+
+    <div class="card">
+      <h2>Lore nedir?</h2>
+      <p>Lore, çevrendeki insanların anonim olarak sorduğu konuma bağlı soruları harita
+      üzerinde keşfettiğin, cevapladığın ve beğendiğin bir cevabın arkasındaki kişiyle
+      yine anonim şekilde mesajlaşabildiğin sosyal bir keşif uygulamasıdır.</p>
+    </div>
+
+    <div class="card">
+      <h2>Sık sorulanlar</h2>
+      <p><strong>Hesabımı nasıl silerim?</strong><br/>
+      Uygulama → Profil → Hesap → Hesabı Sil. Bu, profilini ve tüm verilerini kalıcı
+      olarak siler.</p>
+      <p><strong>Bildirimleri nasıl kapatırım?</strong><br/>
+      Cihaz Ayarları'ndan Lore bildirimlerini kapatabilir veya çıkış yapabilirsin.</p>
+      <p><strong>Aboneliğimi nasıl yönetirim?</strong><br/>
+      Abonelikler App Store üzerinden yönetilir: Ayarlar → adın → Abonelikler.</p>
+    </div>
+
+    <div class="card">
+      <h2>Yasal</h2>
+      <p><a href="./privacy.html">Gizlilik Politikası</a> · <a href="./privacy-choices.html">Gizlilik Tercihleriniz</a></p>
+    </div>
+  </section>
+
+  <footer>© 2026 Lore. All rights reserved.</footer>
+</div>
+
+<script>
+  function setLang(l) {
+    document.getElementById('lang-en').classList.toggle('show', l === 'en');
+    document.getElementById('lang-tr').classList.toggle('show', l === 'tr');
+    document.getElementById('btn-en').classList.toggle('active', l === 'en');
+    document.getElementById('btn-tr').classList.toggle('active', l === 'tr');
+  }
+  if ((navigator.language || '').toLowerCase().startsWith('tr')) setLang('tr');
+</script>
+</body>
+</html>

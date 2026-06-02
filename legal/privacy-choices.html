@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lore — Your Privacy Choices / Gizlilik Tercihleriniz</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1a1a1a; background: #fafafa; }
+  @media (prefers-color-scheme: dark) { body { color: #e8e8e8; background: #141414; } a { color: #6ea8ff; } .card { background: #1f1f1f !important; border-color: #333 !important; } }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 28px 0 6px; }
+  .sub { color: #888; margin: 0 0 24px; font-size: 14px; }
+  .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 20px 24px; margin: 16px 0; }
+  ul { margin: 6px 0 6px 0; padding-left: 20px; }
+  a { color: #2b6cff; }
+  .toggle { display: inline-flex; gap: 8px; margin-bottom: 24px; }
+  .toggle button { border: 1px solid #ccc; background: transparent; color: inherit; padding: 6px 14px; border-radius: 999px; cursor: pointer; font-size: 14px; }
+  .toggle button.active { background: #2b6cff; color: #fff; border-color: #2b6cff; }
+  .lang { display: none; } .lang.show { display: block; }
+  footer { margin-top: 40px; font-size: 13px; color: #999; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toggle">
+    <button id="btn-en" class="active" onclick="setLang('en')">English</button>
+    <button id="btn-tr" onclick="setLang('tr')">Türkçe</button>
+  </div>
+
+  <!-- ENGLISH -->
+  <section id="lang-en" class="lang show">
+    <h1>Your Privacy Choices</h1>
+    <p class="sub">App: Lore · Last updated: June 2, 2026</p>
+
+    <div class="card">
+      <p>You are in control of your data in Lore. Here is how to exercise your choices.</p>
+    </div>
+
+    <div class="card">
+      <h2>Delete your account &amp; data</h2>
+      <p>In the app: <strong>Profile → Account → Delete Account</strong>. This permanently
+      and irreversibly deletes your profile, questions, answers, messages, and all related data.</p>
+    </div>
+
+    <div class="card">
+      <h2>Access or correct your data</h2>
+      <p>Edit your username, avatar, and other profile details from the Profile screen. To
+      request a copy of your data, email us.</p>
+    </div>
+
+    <div class="card">
+      <h2>Location</h2>
+      <p>You can turn location access on or off at any time in your device Settings →
+      Privacy → Location Services → Lore. Without location, nearby features are limited.</p>
+    </div>
+
+    <div class="card">
+      <h2>Notifications</h2>
+      <p>Disable push notifications in your device Settings → Notifications → Lore.</p>
+    </div>
+
+    <div class="card">
+      <h2>Subscriptions</h2>
+      <p>Manage or cancel your Premium subscription via the App Store: Settings → your name →
+      Subscriptions.</p>
+    </div>
+
+    <div class="card">
+      <h2>Contact us</h2>
+      <p>For any privacy request, email <a href="mailto:etkinlikyweb@gmail.com">etkinlikyweb@gmail.com</a>.</p>
+    </div>
+  </section>
+
+  <!-- TÜRKÇE -->
+  <section id="lang-tr" class="lang">
+    <h1>Gizlilik Tercihleriniz</h1>
+    <p class="sub">Uygulama: Lore · Son güncelleme: 2 Haziran 2026</p>
+
+    <div class="card">
+      <p>Lore'da verilerin üzerinde tam kontrol sende. Tercihlerini şöyle kullanabilirsin.</p>
+    </div>
+
+    <div class="card">
+      <h2>Hesabını ve verilerini sil</h2>
+      <p>Uygulamada: <strong>Profil → Hesap → Hesabı Sil</strong>. Bu işlem profilini,
+      sorularını, cevaplarını, mesajlarını ve ilgili tüm verilerini kalıcı ve geri
+      döndürülemez şekilde siler.</p>
+    </div>
+
+    <div class="card">
+      <h2>Verilerine erişme veya düzeltme</h2>
+      <p>Takma adını, avatarını ve diğer profil bilgilerini Profil ekranından
+      düzenleyebilirsin. Verilerinin bir kopyasını istemek için bize e-posta gönder.</p>
+    </div>
+
+    <div class="card">
+      <h2>Konum</h2>
+      <p>Konum erişimini istediğin zaman cihaz Ayarları → Gizlilik → Konum Servisleri →
+      Lore üzerinden açıp kapatabilirsin. Konum olmadan yakınlık özellikleri sınırlıdır.</p>
+    </div>
+
+    <div class="card">
+      <h2>Bildirimler</h2>
+      <p>Push bildirimlerini cihaz Ayarları → Bildirimler → Lore üzerinden kapatabilirsin.</p>
+    </div>
+
+    <div class="card">
+      <h2>Abonelikler</h2>
+      <p>Premium aboneliğini App Store üzerinden yönetebilir veya iptal edebilirsin:
+      Ayarlar → adın → Abonelikler.</p>
+    </div>
+
+    <div class="card">
+      <h2>Bize ulaşın</h2>
+      <p>Her türlü gizlilik talebi için <a href="mailto:etkinlikyweb@gmail.com">etkinlikyweb@gmail.com</a> adresine yazabilirsin.</p>
+    </div>
+  </section>
+
+  <footer>© 2026 Lore. All rights reserved.</footer>
+</div>
+
+<script>
+  function setLang(l) {
+    document.getElementById('lang-en').classList.toggle('show', l === 'en');
+    document.getElementById('lang-tr').classList.toggle('show', l === 'tr');
+    document.getElementById('btn-en').classList.toggle('active', l === 'en');
+    document.getElementById('btn-tr').classList.toggle('active', l === 'tr');
+  }
+  if ((navigator.language || '').toLowerCase().startsWith('tr')) setLang('tr');
+</script>
+</body>
+</html>
