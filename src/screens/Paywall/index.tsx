@@ -156,9 +156,10 @@ export default function PaywallScreen() {
   // Mağazadan gelen localize fiyatlar; offering yüklenmediyse sabitlere düş.
   const monthlyPriceStr = monthlyPkg?.product.priceString ?? MONTHLY_PRICE;
   const yearlyPriceStr  = annualPkg?.product.priceString ?? YEARLY_PRICE;
+  // Sadece tutar; "/ay" eki PlanCard'da bir kez ekleniyor (çift "/ay" olmasın).
   const yearlyPerMoStr  = annualPkg
     ? fmtCurrency(annualPkg.product.price / 12, annualPkg.product.currencyCode)
-    : YEARLY_PER_MO + t('paywall.monthlyPer');
+    : YEARLY_PER_MO;
 
   async function handleUpgrade() {
     if (busy) return;
