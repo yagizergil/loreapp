@@ -15,6 +15,7 @@ import { LocalProfile, Gender, saveLocalProfile } from '../../lib/storage';
 import {
   createProfile, signUpWithEmail, signInWithEmail, signInWithAppleToken,
   uploadAvatar, updateProfile, fetchProfileByAuthUserId, getAuthUser,
+  linkAuthToProfile,
 } from '../../lib/supabase';
 import { genderColor } from '../../lib/genderColors';
 import { AVATARS } from '../../lib/avatar';
@@ -177,13 +178,21 @@ function AvatarGrid({ selected, onChange }: { selected: string; onChange: (key: 
 
 type Screen = 'landing' | 'slides' | 'profile-type' | 'account-creds' | 'signin' | 'profile-setup';
 
-interface Props { onComplete: (p: LocalProfile) => void }
+interface Props {
+  onComplete: (p: LocalProfile) => void;
+  /** When set, onboarding runs in "upgrade" mode: the user already has an
+   *  anonymous profile and is attaching a real account to it (keeping id,
+   *  content and premium). */
+  upgradeProfile?: LocalProfile | null;
+  onCancel?: () => void;
+}
 
-export default function OnboardingScreen({ onComplete }: Props) {
+export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
-  const [screen, setScreen]       = useState<Screen>('landing');
+  const isUpgrade = !!upgradeProfile;
+  const [screen, setScreen]       = useState<Screen>(isUpgrade ? 'profile-type' : 'landing');
   const [mode, setMode]           = useState<'anon' | 'account' | 'apple'>('anon');
   const [appleUserId, setAppleUserId] = useState<string | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
@@ -289,6 +298,16 @@ export default function OnboardingScreen({ onComplete }: Props) {
         return;
       }
 
+      // Upgrade mode: attach this Apple account to the EXISTING anonymous
+      // profile in place — keeps id, content and RevenueCat premium.
+      if (upgradeProfile) {
+        await linkAuthToProfile(upgradeProfile.id, authUser.id);
+        const local: LocalProfile = { ...upgradeProfile, isAnonymous: false };
+        await saveLocalProfile(local);
+        onComplete(local);
+        return;
+      }
+
       // First Apple sign-in on this account → collect nickname/avatar.
       setAppleUserId(authUser.id);
       setMode('apple');
@@ -349,12 +368,25 @@ export default function OnboardingScreen({ onComplete }: Props) {
   }
 
   async function finishAccount() {
-    if (!validateProfileStep()) return;
+    // Upgrade mode reuses the existing profile's nickname/avatar, so the
+    // onboarding nickname field is intentionally empty — skip that check.
+    if (!isUpgrade && !validateProfileStep()) return;
     setLoading(true);
     try {
       await Location.requestForegroundPermissionsAsync();
       const authData = await signUpWithEmail(email.trim().toLowerCase(), password);
       const authUserId = authData.user?.id ?? null;
+
+      // Upgrade mode: link the new credentials to the existing anonymous
+      // profile (keeps id / content / premium) instead of creating a new one.
+      if (upgradeProfile && authUserId) {
+        await linkAuthToProfile(upgradeProfile.id, authUserId);
+        const local: LocalProfile = { ...upgradeProfile, isAnonymous: false };
+        await saveLocalProfile(local);
+        onComplete(local);
+        return;
+      }
+
       const p = await createProfile(nickname.trim(), avatarKey, gender, authUserId);
 
       let avatarUrl: string | null = null;
@@ -389,6 +421,15 @@ export default function OnboardingScreen({ onComplete }: Props) {
       if (!authUser) throw new Error('Kullanıcı bulunamadı.');
       const profile = await fetchProfileByAuthUserId(authUser.id);
       if (!profile) {
+        // Upgrade mode: this account has no profile yet → attach it to the
+        // existing anonymous profile (keeps id / content / premium).
+        if (upgradeProfile) {
+          await linkAuthToProfile(upgradeProfile.id, authUser.id);
+          const local: LocalProfile = { ...upgradeProfile, isAnonymous: false };
+          await saveLocalProfile(local);
+          onComplete(local);
+          return;
+        }
         // Profile exists in auth but no profile row found → go to profile setup
         setMode('account');
         setLoading(false);
@@ -521,7 +562,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     return (
       <View style={[s.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <Animated.View style={[{ flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.base }, aStyle]}>
-          <BackRow onPress={() => go('slides')} />
+          <BackRow onPress={isUpgrade ? (onCancel ?? (() => {})) : () => go('slides')} />
 
           <View style={s.sealRow}>
             <View style={{ transform: [{ rotate: '-8deg' }, { translateY: 6 }] }}>
@@ -533,21 +574,27 @@ export default function OnboardingScreen({ onComplete }: Props) {
             </View>
           </View>
 
-          <Text style={s.ptTitle}>{t('onboarding.profileTypeTitle')}</Text>
-          <Text style={s.ptSub}>{t('onboarding.profileTypeSub')}</Text>
+          <Text style={s.ptTitle}>
+            {isUpgrade ? t('onboarding.upgradeTitle') : t('onboarding.profileTypeTitle')}
+          </Text>
+          <Text style={s.ptSub}>
+            {isUpgrade ? t('onboarding.upgradeSub') : t('onboarding.profileTypeSub')}
+          </Text>
 
-          <TouchableOpacity
-            style={s.typeCard}
-            activeOpacity={0.8}
-            onPress={() => { setMode('anon'); go('profile-setup'); }}
-          >
-            <Text style={s.typeEmoji}>🎭</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={s.typeTitle}>{t('onboarding.anonTitle')}</Text>
-              <Text style={s.typeSub}>{t('onboarding.anonSub')}</Text>
-            </View>
-            <Text style={s.typeChev}>›</Text>
-          </TouchableOpacity>
+          {!isUpgrade && (
+            <TouchableOpacity
+              style={s.typeCard}
+              activeOpacity={0.8}
+              onPress={() => { setMode('anon'); go('profile-setup'); }}
+            >
+              <Text style={s.typeEmoji}>🎭</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.typeTitle}>{t('onboarding.anonTitle')}</Text>
+                <Text style={s.typeSub}>{t('onboarding.anonSub')}</Text>
+              </View>
+              <Text style={s.typeChev}>›</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={[s.typeCard, { borderColor: palette.accent + '55' }]}
@@ -647,7 +694,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
             activeOpacity={0.85}
             disabled={loading}
             onPress={() => {
-              if (validateCredsStep()) go('profile-setup');
+              if (!validateCredsStep()) return;
+              // Upgrade mode reuses the existing nickname/avatar → no setup step.
+              if (isUpgrade) finishAccount();
+              else go('profile-setup');
             }}
           >
             <Text style={s.btnPrimaryText}>{t('common.next')}</Text>

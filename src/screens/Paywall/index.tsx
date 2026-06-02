@@ -7,6 +7,7 @@ import {
   Animated,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -15,6 +16,7 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { usePremium } from '../../lib/PremiumContext';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation';
+import { LINKS } from '../../lib/links';
 
 type Plan = 'monthly' | 'yearly';
 type PaywallRoute = RouteProp<RootStackParamList, 'Paywall'>;
@@ -296,6 +298,7 @@ export default function PaywallScreen() {
         </Animated.View>
 
         <Text style={s.trialNote}>{trialNote}</Text>
+        <Text style={s.legalNote}>{t('paywall.autoRenewNote')}</Text>
 
         <View style={s.footerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.6} hitSlop={12} disabled={busy}>
@@ -304,6 +307,16 @@ export default function PaywallScreen() {
           <Text style={s.footerSep}>·</Text>
           <TouchableOpacity onPress={handleRestore} activeOpacity={0.6} hitSlop={12} disabled={busy}>
             <Text style={s.dismiss}>{t('paywall.restore')}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={s.footerRow}>
+          <TouchableOpacity onPress={() => Linking.openURL(LINKS.terms)} activeOpacity={0.6} hitSlop={12}>
+            <Text style={s.dismiss}>{t('paywall.terms')}</Text>
+          </TouchableOpacity>
+          <Text style={s.footerSep}>·</Text>
+          <TouchableOpacity onPress={() => Linking.openURL(LINKS.privacy)} activeOpacity={0.6} hitSlop={12}>
+            <Text style={s.dismiss}>{t('paywall.privacy')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -588,6 +601,15 @@ const s = StyleSheet.create({
     color: palette.ink40,
     textAlign: 'center',
     marginBottom: 6,
+  },
+  legalNote: {
+    fontFamily: fontFamily.body,
+    fontSize: 10,
+    lineHeight: 14,
+    color: palette.ink40,
+    textAlign: 'center',
+    marginBottom: 10,
+    paddingHorizontal: spacing.sm,
   },
   footerRow: {
     flexDirection: 'row',

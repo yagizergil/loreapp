@@ -198,13 +198,20 @@ interface Props {
 
 export default function Navigation({ initialProfile }: Props) {
   const [profile, setProfile] = useState<LocalProfile | null>(initialProfile);
+  const [upgrading, setUpgrading] = useState<LocalProfile | null>(null);
   const hasProfile = !!profile?.id && !!profile?.nickname;
   const navRef = React.useRef<any>(null);
 
   // Sign-out / account-delete: Profile screen fires authEvents.onSignOut → clears state → shows Onboarding
   useEffect(() => {
-    authEvents.onSignOut = () => setProfile(null);
-    return () => { authEvents.onSignOut = () => {}; };
+    authEvents.onSignOut = () => { setUpgrading(null); setProfile(null); };
+    // Anonymous → real account: keep the current profile mounted, but overlay
+    // onboarding in "upgrade" mode so premium/content survive a cancel.
+    authEvents.onUpgradeAccount = (current) => setUpgrading(current);
+    return () => {
+      authEvents.onSignOut = () => {};
+      authEvents.onUpgradeAccount = () => {};
+    };
   }, []);
 
   // Wire paywallEvents so any component can trigger the Paywall screen
@@ -245,7 +252,13 @@ export default function Navigation({ initialProfile }: Props) {
 
   return (
     <NavigationContainer ref={navRef}>
-      {hasProfile ? (
+      {hasProfile && upgrading ? (
+        <OnboardingScreen
+          upgradeProfile={upgrading}
+          onCancel={() => setUpgrading(null)}
+          onComplete={(p) => { setUpgrading(null); setProfile(p); }}
+        />
+      ) : hasProfile ? (
         <ProfileProvider profile={profile!}>
           <PremiumProvider profileId={profile!.id}>
           <UnreadCountsProvider userId={profile!.id}>

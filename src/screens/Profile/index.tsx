@@ -16,6 +16,10 @@ import {
 } from '../../components/ui/Icons';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
+import Constants from 'expo-constants';
+import { LINKS } from '../../lib/links';
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 // ─── Icon-based row item ──────────────────────────────────────────────────────
 
@@ -223,6 +227,15 @@ export default function ProfileScreen() {
     );
   }
 
+  // Anonymous profiles can attach a real account instead of "signing out"
+  // (they have no credentials to sign back in with). Linking preserves their
+  // id → content AND RevenueCat Premium stay intact.
+  const isAnonymous = profile.isAnonymous !== false;
+
+  function handleUpgradeAccount() {
+    authEvents.onUpgradeAccount(profile);
+  }
+
   const genderLabel =
     profile.gender === 'male'   ? t('profile.gender.male') :
     profile.gender === 'female' ? t('profile.gender.female') : t('profile.gender.other');
@@ -337,13 +350,13 @@ export default function ProfileScreen() {
           <SettingRow
             icon={<Text style={{ fontSize: 15 }}>🔒</Text>}
             label={t('profile.rows.privacy')}
-            onPress={() => Linking.openURL('https://lore.app/privacy')}
+            onPress={() => Linking.openURL(LINKS.privacy)}
           />
           <Divider />
           <SettingRow
             icon={<Text style={{ fontSize: 15 }}>📄</Text>}
             label={t('profile.rows.terms')}
-            onPress={() => Linking.openURL('https://lore.app/terms')}
+            onPress={() => Linking.openURL(LINKS.terms)}
           />
           <Divider />
           <SettingRow
@@ -356,35 +369,50 @@ export default function ProfileScreen() {
         {/* ── Uygulama ── */}
         <Section title={t('profile.sections.app')}>
           <SettingRow
+            icon={<Text style={{ fontSize: 15 }}>💳</Text>}
+            label={t('profile.rows.manageSubscription')}
+            onPress={() => Linking.openURL(LINKS.manageSubscriptions)}
+          />
+          <Divider />
+          <SettingRow
             icon={<Text style={{ fontSize: 15 }}>⭐</Text>}
             label={t('profile.rows.rateApp')}
-            onPress={() => Linking.openURL('https://apps.apple.com')}
+            onPress={() => Linking.openURL(LINKS.rate)}
           />
           <Divider />
           <SettingRow
             icon={<Text style={{ fontSize: 15 }}>🐛</Text>}
             label={t('profile.rows.bugReport')}
-            onPress={() => Linking.openURL('mailto:hello@lore.app')}
+            onPress={() => Linking.openURL(`mailto:${LINKS.contactEmail}`)}
           />
           <Divider />
           <SettingRow
             icon={<Text style={{ fontSize: 15 }}>ℹ️</Text>}
             label={t('profile.rows.version')}
-            value="1.0.0"
+            value={APP_VERSION}
           />
         </Section>
 
         {/* ── Hesap ── */}
         <Section title={t('profile.sections.account')}>
-          <SettingRow
-            icon={
-              busySignOut
-                ? <ActivityIndicator color={palette.ink40} size="small" />
-                : <IconSignOut color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />
-            }
-            label={t('profile.rows.signOut')}
-            onPress={busySignOut ? undefined : handleSignOut}
-          />
+          {isAnonymous ? (
+            <SettingRow
+              icon={<IconSignOut color={palette.accent} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
+              label={t('profile.rows.signIn')}
+              value={undefined}
+              onPress={handleUpgradeAccount}
+            />
+          ) : (
+            <SettingRow
+              icon={
+                busySignOut
+                  ? <ActivityIndicator color={palette.ink40} size="small" />
+                  : <IconSignOut color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />
+              }
+              label={t('profile.rows.signOut')}
+              onPress={busySignOut ? undefined : handleSignOut}
+            />
+          )}
           <Divider />
           <SettingRow
             icon={

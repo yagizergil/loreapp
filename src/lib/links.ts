@@ -1,0 +1,28 @@
+/**
+ * Centralised external URLs used across the app (App Store, legal pages,
+ * subscription management, contact). Keep these in one place so a change to
+ * the hosting / App Store id only needs editing here.
+ */
+
+const PAGES_BASE = 'https://yagizergil.github.io/loreapp/legal';
+
+// TODO: once the app is live, replace `idXXXXXXXXX` with the real App Store id.
+const APP_STORE_ID = '';
+
+export const LINKS = {
+  privacy:        `${PAGES_BASE}/privacy.html`,
+  terms:          `${PAGES_BASE}/terms.html`,
+  privacyChoices: `${PAGES_BASE}/privacy-choices.html`,
+  support:        `${PAGES_BASE}/`,
+
+  contactEmail:   'etkinlikyweb@gmail.com',
+
+  /** Native subscriptions management screen. */
+  manageSubscriptions: 'itms-apps://apps.apple.com/account/subscriptions',
+
+  /** App Store "write a review" deep-link. Falls back to a search when the id
+   *  is not yet known (pre-launch). */
+  rate: APP_STORE_ID
+    ? `itms-apps://apps.apple.com/app/id${APP_STORE_ID}?action=write-review`
+    : 'itms-apps://apps.apple.com/app/lore',
+} as const;

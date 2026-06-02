@@ -124,6 +124,26 @@ export async function createProfile(
   return data as Profile;
 }
 
+/**
+ * Links an existing (anonymous) profile row to an auth user id, "upgrading"
+ * it to a real account in place. Keeps the SAME profile.id so all of the
+ * user's content AND their RevenueCat entitlement (appUserID = profile.id)
+ * stay attached. Returns the updated profile.
+ */
+export async function linkAuthToProfile(
+  profileId: string,
+  authUserId: string,
+): Promise<Profile> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ auth_user_id: authUserId })
+    .eq('id', profileId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Profile;
+}
+
 export async function fetchProfileByAuthUserId(authUserId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
