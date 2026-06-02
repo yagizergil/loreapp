@@ -6,8 +6,8 @@
 
 const PAGES_BASE = 'https://yagizergil.github.io/loreapp/legal';
 
-// TODO: once the app is live, replace `idXXXXXXXXX` with the real App Store id.
-const APP_STORE_ID = '';
+// App Store id (Apple ID from App Store Connect).
+const APP_STORE_ID = '6775550586';
 
 export const LINKS = {
   privacy:        `${PAGES_BASE}/privacy.html`,
