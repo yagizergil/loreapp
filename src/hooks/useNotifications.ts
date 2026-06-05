@@ -27,12 +27,16 @@ interface Options {
 }
 
 export function useNotifications({ profileId, userLat, userLng }: Options) {
-  const tokenRegistered = useRef(false);
+  const registeredFor = useRef<string | null>(null);
 
-  // ── 1. Register push token once ─────────────────────────────────────────────
+  // ── 1. Register push token whenever the active profile changes ──────────────
+  // Re-claiming on every profile switch ensures the *current* profile owns the
+  // device token. Otherwise, after a sign-out/profile switch the token stays on
+  // the previous profile and this profile's notifications (DM, like, answer)
+  // silently never arrive. claim_push_token is idempotent so this is safe.
   useEffect(() => {
-    if (!profileId || tokenRegistered.current) return;
-    tokenRegistered.current = true;
+    if (!profileId || registeredFor.current === profileId) return;
+    registeredFor.current = profileId;
     registerForPushNotifications(profileId).catch(() => {});
   }, [profileId]);
 

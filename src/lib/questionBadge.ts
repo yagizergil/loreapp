@@ -21,13 +21,16 @@ export function getQuestionBadge(q: {
   return null;
 }
 
+// Colors only. The display label is resolved at render time via i18n
+// (`t('badge.hot' | 'badge.popular' | 'badge.new')`) so it respects the
+// app's active language.
 export const BADGE_META: Record<
   NonNullable<QuestionBadge>,
-  { label: string; color: string; bg: string }
+  { color: string; bg: string }
 > = {
-  hot:     { label: 'Sıcak',   color: '#E8603A', bg: '#E8603A22' },
-  popular: { label: 'Popüler', color: '#C8971A', bg: '#C8971A22' },
-  new:     { label: 'Yeni',    color: '#4A9E6E', bg: '#4A9E6E22' },
+  hot:     { color: '#E8603A', bg: '#E8603A22' },
+  popular: { color: '#C8971A', bg: '#C8971A22' },
+  new:     { color: '#4A9E6E', bg: '#4A9E6E22' },
 };
 
 /** Badge priority for sorting (higher = shown first). */

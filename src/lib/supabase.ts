@@ -53,6 +53,9 @@ export interface Question {
   lng: number;
   answer_count: number;
   created_at: string;
+  /** Distance (meters) from the query point. Present when fetched via
+   *  questions_around; used to compute the free/premium lock state. */
+  dist_m?: number;
 }
 
 export interface Answer {
@@ -80,6 +83,30 @@ export async function fetchNearbyQuestions(lat: number, lng: number, radiusM = 3
     user_lat: lat,
     user_lng: lng,
     radius_m: radiusM,
+  });
+  if (error) throw error;
+  return data as Question[];
+}
+
+/**
+ * Performance-bounded nearby fetch (see supabase/questions_around.sql).
+ * Returns questions within `premiumM` ordered by distance, capped at `max`.
+ * If fewer than `min` are in range, expands to a wider radius to backfill.
+ * Each row carries `dist_m` so the map can compute the free/premium lock.
+ */
+export async function fetchQuestionsAround(
+  lat: number,
+  lng: number,
+  premiumM = 4000,
+  min = 10,
+  max = 60,
+): Promise<Question[]> {
+  const { data, error } = await supabase.rpc('questions_around', {
+    p_lat: lat,
+    p_lng: lng,
+    p_premium_m: premiumM,
+    p_min: min,
+    p_max: max,
   });
   if (error) throw error;
   return data as Question[];
@@ -183,12 +210,15 @@ export async function signOut() {
 }
 
 /**
- * Deletes the user's profile row and signs out the session.
- * Apple App Store requires an in-app account deletion option.
- * For full auth.users removal, add a Supabase RPC with service-role on the backend.
+ * Permanently deletes the user's account (profile + all related data + auth
+ * user) via a security-definer RPC, then signs out the local session.
+ *
+ * A plain `profiles.delete()` from the client is silently blocked by RLS, so
+ * deletion MUST go through the `delete_account` RPC (see supabase/delete_account.sql).
  */
 export async function deleteAccount(profileId: string): Promise<void> {
-  await supabase.from('profiles').delete().eq('id', profileId);
+  const { error } = await supabase.rpc('delete_account', { p_id: profileId });
+  if (error) throw error;
   await supabase.auth.signOut();
 }
 
@@ -443,11 +473,117 @@ export async function fetchUserStats(userId: string): Promise<{ questions: numbe
   return { questions: qRes.count ?? 0, answers: aRes.count ?? 0 };
 }
 
+// ─── Delete own content (Guideline 1.2: immediate post removal) ──────────────
+
+/** Permanently delete the current user's own question (and its answers). */
+export async function deleteOwnQuestion(questionId: string, profileId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_own_question', {
+    p_question: questionId,
+    p_profile:  profileId,
+  });
+  if (error) throw error;
+}
+
+/** Permanently delete the current user's own answer. */
+export async function deleteOwnAnswer(answerId: string, profileId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_own_answer', {
+    p_answer:  answerId,
+    p_profile: profileId,
+  });
+  if (error) throw error;
+}
+
+// ─── Answer upvotes (join-table backed, server-authoritative) ────────────────
+
+/** Toggle the current user's upvote on an answer. Returns the new state and
+ *  the authoritative upvote count from the server. */
+export async function toggleAnswerUpvote(
+  answerId: string,
+  profileId: string,
+): Promise<{ upvoted: boolean; upvotes: number }> {
+  const { data, error } = await supabase.rpc('toggle_answer_upvote', {
+    p_answer:  answerId,
+    p_profile: profileId,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return { upvoted: !!row?.upvoted, upvotes: row?.upvotes ?? 0 };
+}
+
+/** Answer ids the user has upvoted within a given question (restores heart
+ *  state from the server, independent of device / reinstall). */
+export async function fetchUpvotedAnswerIds(
+  profileId: string,
+  questionId: string,
+): Promise<string[]> {
+  const { data, error } = await supabase.rpc('user_upvoted_answers', {
+    p_profile:  profileId,
+    p_question: questionId,
+  });
+  if (error) throw error;
+  return (data ?? []).map((r: { answer_id: string }) => r.answer_id);
+}
+
 export async function reportQuestion(questionId: string, reporterId: string, reason?: string) {
   const { error } = await supabase
     .from('reports')
     .insert({ question_id: questionId, reporter_id: reporterId, reason });
   if (error) throw error;
+}
+
+export async function reportAnswer(answerId: string, reporterId: string, reason?: string) {
+  const { error } = await supabase
+    .from('reports')
+    .insert({ answer_id: answerId, reporter_id: reporterId, reason });
+  if (error) throw error;
+}
+
+export async function reportUser(reportedId: string, reporterId: string, reason?: string) {
+  const { error } = await supabase
+    .from('reports')
+    .insert({ reported_id: reportedId, reporter_id: reporterId, reason });
+  if (error) throw error;
+}
+
+// ─── Blocking (App Store UGC requirement) ────────────────────────────────────
+
+export async function blockUser(blockerId: string, blockedId: string) {
+  if (blockerId === blockedId) return;
+  const { error } = await supabase
+    .from('blocks')
+    .upsert({ blocker_id: blockerId, blocked_id: blockedId }, { onConflict: 'blocker_id,blocked_id' });
+  if (error) throw error;
+}
+
+export async function unblockUser(blockerId: string, blockedId: string) {
+  const { error } = await supabase
+    .from('blocks')
+    .delete()
+    .eq('blocker_id', blockerId)
+    .eq('blocked_id', blockedId);
+  if (error) throw error;
+}
+
+/** Ids of users the viewer has blocked — used to hide their content client-side. */
+export async function fetchBlockedIds(viewerId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('blocks')
+    .select('blocked_id')
+    .eq('blocker_id', viewerId);
+  if (error) return [];
+  return (data as { blocked_id: string }[]).map((r) => r.blocked_id);
+}
+
+/** Blocked users with their profile info — for the "Blocked users" management screen. */
+export async function fetchBlockedProfiles(viewerId: string): Promise<Profile[]> {
+  const { data, error } = await supabase
+    .from('blocks')
+    .select('blocked:profiles!blocks_blocked_id_fkey(*)')
+    .eq('blocker_id', viewerId);
+  if (error) return [];
+  return (data as unknown as { blocked: Profile | Profile[] | null }[])
+    .map((r) => (Array.isArray(r.blocked) ? r.blocked[0] : r.blocked))
+    .filter((p): p is Profile => !!p);
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

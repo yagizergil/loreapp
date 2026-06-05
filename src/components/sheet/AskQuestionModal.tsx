@@ -2,11 +2,12 @@ import React, { useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, ScrollView, Modal, Pressable,
-  Dimensions, KeyboardAvoidingView, Platform, Animated,
+  Dimensions, KeyboardAvoidingView, Platform, Animated, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { QuestionType, postQuestion } from '../../lib/supabase';
+import { containsObjectionableContent } from '../../lib/contentFilter';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
@@ -155,6 +156,14 @@ export default function AskQuestionModal({ profileId, userLocation, onClose, onP
 
   async function handleSubmit() {
     if (!canSubmit) return;
+
+    // Objectionable-content filter (Guideline 1.2): block before posting.
+    const choiceText = choiceOptions.join(' ');
+    if (containsObjectionableContent(questionBody) || containsObjectionableContent(choiceText)) {
+      Alert.alert(t('filter.blockedTitle'), t('filter.blockedBody'));
+      return;
+    }
+
     setSubmitting(true);
     try {
       const options =
@@ -163,10 +172,16 @@ export default function AskQuestionModal({ profileId, userLocation, onClose, onP
           : selectedType === 'vote'
           ? [{ label: 'Evet', count: 0 }, { label: 'Hayır', count: 0 }]
           : undefined;
-      await postQuestion(profileId, questionBody.trim(), selectedType, userLocation!.lat, userLocation!.lng, options);
+      if (!userLocation) {
+        Alert.alert(t('common.error'), t('ask.errorNoLocation'));
+        return;
+      }
+      await postQuestion(profileId, questionBody.trim(), selectedType, userLocation.lat, userLocation.lng, options);
       onPosted();
       onClose();
-    } catch {}
+    } catch (e: any) {
+      Alert.alert(t('common.error'), t('ask.errorPost', { msg: e?.message ?? '' }));
+    }
     finally { setSubmitting(false); }
   }
 

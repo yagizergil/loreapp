@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -10,6 +9,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   FlatList,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -23,10 +23,13 @@ import Animated, {
 import {
   Question, QuestionType, Answer, Profile,
   fetchAnswers, submitAnswer, fetchProfiles, countTodayAnswers, FREE_DAILY_ANSWER_LIMIT,
+  fetchBlockedIds, toggleAnswerUpvote, fetchUpvotedAnswerIds, deleteOwnAnswer,
 } from '../../lib/supabase';
 import { paywallEvents } from '../../lib/premiumEvents';
 import { usePremium } from '../../lib/PremiumContext';
 import { supabase } from '../../lib/supabase';
+import { moderationMenu, reportAnswerFlow } from '../../lib/moderation';
+import { containsObjectionableContent } from '../../lib/contentFilter';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import AvatarView from '../../components/ui/Avatar';
 import { useTranslation } from 'react-i18next';
@@ -52,6 +55,14 @@ const TYPE_LABEL = (): Record<QuestionType, string> => ({
   choice: i18n.t('questionType.choice'),
   open:   i18n.t('questionType.open'),
 });
+
+// Yes/No vote questions store canonical 'Evet'/'Hayır' labels in the DB; show
+// them localized. Other (choice) labels are user content and shown as-is.
+function displayChoiceLabel(label: string): string {
+  if (label === 'Evet')  return i18n.t('sheet.voteYes');
+  if (label === 'Hayır') return i18n.t('sheet.voteNo');
+  return label;
+}
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -87,7 +98,7 @@ function PollBar({
             {isSelected && <View style={[pb.dotInner, { backgroundColor: color }]} />}
           </View>
           <Text style={[pb.label, isSelected && { color: palette.ink00, fontFamily: fontFamily.bodySemiBold }]}>
-            {option.label}
+            {displayChoiceLabel(option.label)}
           </Text>
           {isWinner && revealed && (
             <View style={[pb.winnerBadge, { backgroundColor: color + '22' }]}>
@@ -173,7 +184,7 @@ function OptionPicker({ question, color, submitting, onSubmit }: {
               <View style={[op.radio, { borderColor: active ? color : palette.ink40 }]}>
                 {active && <View style={[op.radioFill, { backgroundColor: color }]} />}
               </View>
-              <Text style={[op.optLabel, active && { color: palette.ink00 }]}>{opt.label}</Text>
+              <Text style={[op.optLabel, active && { color: palette.ink00 }]}>{displayChoiceLabel(opt.label)}</Text>
             </TouchableOpacity>
           );
         })}
@@ -209,7 +220,7 @@ const op = StyleSheet.create({
 // ─── Answer card (open type) ──────────────────────────────────────────────────
 
 function AnswerCard({
-  answer, author, isOwn, upvoted, onUpvote, onMessage,
+  answer, author, isOwn, upvoted, onUpvote, onMessage, onModerate, onDelete,
 }: {
   answer:    Answer;
   author?:   Profile;
@@ -217,12 +228,13 @@ function AnswerCard({
   upvoted:   boolean;
   onUpvote:  () => void;
   onMessage?: () => void;
+  onModerate?: () => void;
+  onDelete?: () => void;
 }) {
   const scale     = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   function handleUpvote() {
-    if (upvoted) return;
     scale.value = withSequence(
       withSpring(0.82, { damping: 8 }),
       withSpring(1.12, { damping: 8 }),
@@ -255,6 +267,16 @@ function AnswerCard({
           </View>
           <Text style={ac.time}>{timeAgo(answer.created_at)}</Text>
         </View>
+        {!isOwn && onModerate && (
+          <TouchableOpacity onPress={onModerate} hitSlop={12} style={ac.moreBtn}>
+            <Text style={ac.moreIcon}>⋯</Text>
+          </TouchableOpacity>
+        )}
+        {isOwn && onDelete && (
+          <TouchableOpacity onPress={onDelete} hitSlop={12} style={ac.moreBtn}>
+            <Text style={ac.moreIcon}>🗑</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <Text style={ac.body}>{answer.body}</Text>
@@ -263,7 +285,6 @@ function AnswerCard({
         {/* Upvote */}
         <TouchableOpacity
           onPress={handleUpvote}
-          disabled={upvoted}
           activeOpacity={0.75}
           style={[ac.upBtn, upvoted && ac.upBtnActive]}
         >
@@ -315,6 +336,8 @@ const ac = StyleSheet.create({
     borderBottomLeftRadius: radius.lg,
   },
   top: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  moreBtn: { paddingHorizontal: 6, paddingVertical: 2 },
+  moreIcon: { color: palette.ink40, fontSize: 20, lineHeight: 20, fontFamily: fontFamily.body },
   meta: { flex: 1, gap: 2 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   name: { fontFamily: fontFamily.bodySemiBold, fontSize: fontSize.sm, color: palette.ink00, flexShrink: 1 },
@@ -431,7 +454,6 @@ export default function AnswersScreen() {
   const [sortMode, setSortMode]     = useState<SortMode>('popular');
   const { isPremium } = usePremium();
 
-  const storageKey  = `upvoted_answers:${profileId}`;
   const upvotedRef  = useRef<Set<string>>(new Set());
 
   const inputBorder = useSharedValue(0);
@@ -444,15 +466,17 @@ export default function AnswersScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const [ans, stored] = await Promise.all([
+        const [ansRaw, upvotedIdList, blocked] = await Promise.all([
           fetchAnswers(question.id),
-          AsyncStorage.getItem(storageKey),
+          fetchUpvotedAnswerIds(profileId, question.id),
+          fetchBlockedIds(profileId),
         ]);
         if (cancelled) return;
+        const blockedSet = new Set(blocked);
+        const ans = ansRaw.filter((a) => !blockedSet.has(a.author_id));
         setAnswers(ans);
 
-        const savedIds: string[] = stored ? JSON.parse(stored) : [];
-        const restoredSet = new Set<string>(savedIds);
+        const restoredSet = new Set<string>(upvotedIdList);
         upvotedRef.current = restoredSet;
         setUpvotedIds(restoredSet);
 
@@ -548,6 +572,11 @@ export default function AnswersScreen() {
   async function handleSubmit() {
     const trimmed = text.trim();
     if (!trimmed || submitting || answered) return;
+    // Objectionable-content filter (Guideline 1.2): block before posting.
+    if (containsObjectionableContent(trimmed)) {
+      Alert.alert(t('filter.blockedTitle'), t('filter.blockedBody'));
+      return;
+    }
     if (!isPremium) {
       const todayCount = await countTodayAnswers(profileId);
       if (todayCount >= FREE_DAILY_ANSWER_LIMIT) { paywallEvents.show('limit'); return; }
@@ -564,29 +593,65 @@ export default function AnswersScreen() {
     finally { setSubmitting(false); }
   }
 
-  // ── Upvote ────────────────────────────────────────────────────────────────
+  // ── Delete own answer (Guideline 1.2: immediate removal) ─────────────────────
+  function handleDeleteAnswer(answerId: string) {
+    Alert.alert(
+      t('ownPost.deleteAnswerTitle'),
+      t('ownPost.deleteAnswerMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('ownPost.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteOwnAnswer(answerId, profileId);
+              setAnswers((prev) => prev.filter((a) => a.id !== answerId));
+            } catch {
+              Alert.alert(t('common.error'), t('ownPost.deleteError'));
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  // ── Upvote (server-authoritative toggle) ─────────────────────────────────────
+  // Optimistik güncelle, sonra sunucunun döndürdüğü gerçek sayı/duruma sabitle.
+  // Aynı cevap için eşzamanlı çift-dokunuşu engellemek için in-flight kilit.
+  const inFlightUpvotes = useRef<Set<string>>(new Set());
+
   async function handleUpvote(answerId: string) {
-    if (upvotedRef.current.has(answerId)) return;
-    const nextSet = new Set(upvotedRef.current).add(answerId);
+    if (inFlightUpvotes.current.has(answerId)) return;
+    inFlightUpvotes.current.add(answerId);
+
+    const wasUpvoted = upvotedRef.current.has(answerId);
+    const nextSet = new Set(upvotedRef.current);
+    if (wasUpvoted) nextSet.delete(answerId); else nextSet.add(answerId);
     upvotedRef.current = nextSet;
     setUpvotedIds(new Set(nextSet));
-    setAnswers((prev) => prev.map((a) => a.id === answerId ? { ...a, upvotes: a.upvotes + 1 } : a));
-    AsyncStorage.setItem(storageKey, JSON.stringify(Array.from(nextSet))).catch(() => {});
+    setAnswers((prev) => prev.map((a) =>
+      a.id === answerId ? { ...a, upvotes: Math.max(0, a.upvotes + (wasUpvoted ? -1 : 1)) } : a));
 
     try {
-      const { error } = await supabase.rpc('increment_answer_upvotes', { answer_id: answerId, actor_id: profileId });
-      if (error) {
-        const { data } = await supabase.from('answers').select('upvotes').eq('id', answerId).single();
-        if (data) await supabase.from('answers').update({ upvotes: (data as any).upvotes + 1 }).eq('id', answerId);
-      }
+      const { upvoted, upvotes } = await toggleAnswerUpvote(answerId, profileId);
+      // Sunucu otoritedir: gerçek duruma sabitle.
+      const synced = new Set(upvotedRef.current);
+      if (upvoted) synced.add(answerId); else synced.delete(answerId);
+      upvotedRef.current = synced;
+      setUpvotedIds(new Set(synced));
+      setAnswers((prev) => prev.map((a) =>
+        a.id === answerId ? { ...a, upvotes } : a));
     } catch {
-      // Rollback on network failure
+      // Ağ hatası: optimistik değişikliği geri al.
       const rollback = new Set(upvotedRef.current);
-      rollback.delete(answerId);
+      if (wasUpvoted) rollback.add(answerId); else rollback.delete(answerId);
       upvotedRef.current = rollback;
       setUpvotedIds(new Set(rollback));
-      setAnswers((prev) => prev.map((a) => a.id === answerId ? { ...a, upvotes: Math.max(0, a.upvotes - 1) } : a));
-      AsyncStorage.setItem(storageKey, JSON.stringify(Array.from(rollback))).catch(() => {});
+      setAnswers((prev) => prev.map((a) =>
+        a.id === answerId ? { ...a, upvotes: Math.max(0, a.upvotes + (wasUpvoted ? 1 : -1)) } : a));
+    } finally {
+      inFlightUpvotes.current.delete(answerId);
     }
   }
 
@@ -689,6 +754,13 @@ export default function AnswersScreen() {
                 upvoted={upvotedIds.has(item.id)}
                 onUpvote={() => handleUpvote(item.id)}
                 onMessage={author && !isOwn ? () => handleMessage(author) : undefined}
+                onModerate={!isOwn ? () => moderationMenu({
+                  reporterId: profileId,
+                  authorId: item.author_id,
+                  onReport: () => reportAnswerFlow(item.id, profileId),
+                  onBlocked: () => setAnswers((prev) => prev.filter((a) => a.author_id !== item.author_id)),
+                }) : undefined}
+                onDelete={isOwn ? () => handleDeleteAnswer(item.id) : undefined}
               />
             );
           }}

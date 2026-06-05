@@ -11,6 +11,8 @@ import {
   Message, fetchMessages, sendMessage, getOrCreateConversation,
 } from '../../lib/supabase';
 import { supabase } from '../../lib/supabase';
+import { moderationMenu, reportUserFlow } from '../../lib/moderation';
+import { containsObjectionableContent } from '../../lib/contentFilter';
 import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation';
 import Avatar from '../../components/ui/Avatar';
@@ -102,6 +104,12 @@ export default function ChatScreen() {
     const text = input.trim();
     if (!text || sending) return;
 
+    // Objectionable-content filter (Guideline 1.2).
+    if (containsObjectionableContent(text)) {
+      Alert.alert(t('filter.blockedTitle'), t('filter.blockedBody'));
+      return;
+    }
+
     setSending(true);
     setInput('');
 
@@ -163,6 +171,21 @@ export default function ChatScreen() {
           <Text style={styles.headerName}>{otherNickname}</Text>
           <Text style={styles.headerSub}>{t('chat.subtitle')}</Text>
         </View>
+
+        <TouchableOpacity
+          style={styles.back}
+          hitSlop={10}
+          onPress={() =>
+            moderationMenu({
+              reporterId: profile.id,
+              authorId: otherUserId,
+              onReport: () => reportUserFlow(otherUserId, profile.id),
+              onBlocked: () => navigation.goBack(),
+            })
+          }
+        >
+          <Text style={{ color: palette.ink40, fontSize: 22, lineHeight: 22 }}>⋯</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Body */}

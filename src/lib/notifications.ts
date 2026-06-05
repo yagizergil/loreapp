@@ -12,6 +12,7 @@ import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { savePushToken } from './supabase';
+import i18n from '../i18n';
 
 const EAS_PROJECT_ID = 'a2bfe8c9-6074-4bf9-9c0e-1b9ddc65c13a';
 
@@ -34,21 +35,21 @@ export async function setupNotificationChannels() {
   if (Platform.OS !== 'android') return;
   await Promise.all([
     Notifications.setNotificationChannelAsync(CHANNEL.SOCIAL, {
-      name: 'Sosyal',
+      name: i18n.t('notif.channelSocial'),
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 100, 250],
       lightColor: '#D4603A',
       sound: 'default',
     }),
     Notifications.setNotificationChannelAsync(CHANNEL.NEARBY, {
-      name: 'Yakındaki Sorular',
+      name: i18n.t('notif.channelNearby'),
       importance: Notifications.AndroidImportance.DEFAULT,
       vibrationPattern: [0, 150],
       lightColor: '#D4603A',
       sound: 'default',
     }),
     Notifications.setNotificationChannelAsync(CHANNEL.ENGAGEMENT, {
-      name: 'Hatırlatıcılar',
+      name: i18n.t('notif.channelEngagement'),
       importance: Notifications.AndroidImportance.LOW,
       sound: undefined,
     }),
@@ -141,21 +142,18 @@ type NotifContent = {
 export function buildDailyNudgeContent(
   locationLabel: string | null
 ): NotifContent {
-  const place = locationLabel ? `${locationLabel}'de` : 'Etrafında';
+  // Turkish uses a locative suffix on the place name; English keys are phrased
+  // so the bare label reads naturally. When no place is known, fall back to a
+  // localized "around you" phrase.
+  const isTr  = (i18n.language ?? '').startsWith('tr');
+  const place = locationLabel
+    ? (isTr ? `${locationLabel}'de` : locationLabel)
+    : i18n.t('notif.placeFallback');
 
   const variants = [
-    {
-      title: 'Bugün haritana baktın mı? 🗺️',
-      body:  `${place} cevaplanmayı bekleyen sorular var.`,
-    },
-    {
-      title: `${place} neler oluyor?`,
-      body:  'Cevapla, oy ver — mahalleni şekillendir.',
-    },
-    {
-      title: 'Soruların cevap bekliyor ✨',
-      body:  `${place} bugün yeni aktivite var.`,
-    },
+    { title: i18n.t('notif.daily1Title', { place }), body: i18n.t('notif.daily1Body', { place }) },
+    { title: i18n.t('notif.daily2Title', { place }), body: i18n.t('notif.daily2Body', { place }) },
+    { title: i18n.t('notif.daily3Title', { place }), body: i18n.t('notif.daily3Body', { place }) },
   ];
 
   const idx = new Date().getDay() % variants.length;

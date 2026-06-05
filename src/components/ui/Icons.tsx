@@ -166,6 +166,24 @@ export function IconPlus({ color = '#fff', size = 24, strokeWidth = 2.5 }: IconP
   );
 }
 
+// ─── Locate me / My location ──────────────────────────────────────────────────
+// Classic crosshair: ring + center dot + four ticks. Reads instantly as
+// "center on my location" and matches the app's stroke-icon language.
+export function IconLocateMe({ color = '#fff', size = 24, strokeWidth = 2 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="5" stroke={color} strokeWidth={strokeWidth} />
+      <Circle cx="12" cy="12" r="1.6" fill={color} />
+      <Path
+        d="M12 2v3M12 19v3M2 12h3M19 12h3"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 // ─── Messages / Inbox ─────────────────────────────────────────────────────────
 export function IconMessages({ color = '#fff', size = 24, strokeWidth = 1.8 }: IconProps) {
   return (

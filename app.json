@@ -2,7 +2,7 @@
   "expo": {
     "name": "Lore",
     "slug": "lore",
-    "version": "1.0.6",
+    "version": "1.1.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -10,11 +10,12 @@
       "supportsTablet": false,
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Lore, çevrendeki soruları göstermek ve yerel bilgi paylaşmak için konumunu kullanır.",
-        "NSLocationAlwaysUsageDescription": "Lore, arka planda yeni sorular için bildirim göndermek amacıyla konumunu kullanır.",
+        "NSLocationWhenInUseUsageDescription": "Lore uses your location to show questions near you. You can also use the app without sharing your location.",
+        "NSLocationAlwaysUsageDescription": "Lore uses your location to notify you about new questions nearby.",
+        "NSPhotoLibraryUsageDescription": "Lore accesses a single photo you choose from your library so you can set it as your profile avatar.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "9",
+      "buildNumber": "10",
       "bundleIdentifier": "com.yagizergilvokario.lore"
     },
     "android": {

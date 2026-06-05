@@ -9,6 +9,7 @@ const tr = {
     error:    'Hata',
     or:       'veya',
     next:     'İleri →',
+    back:     'Geri',
     now:      'şimdi',
     ago: {
       minutes: '{{n}} dk',
@@ -16,6 +17,33 @@ const tr = {
       days:    '{{n}} gün',
       weeks:   '{{n}} hafta',
     },
+  },
+
+  // ─── Moderation (UGC — şikayet & engelleme) ──────────────────────────────────
+  moderation: {
+    menuTitle:           'Seçenekler',
+    menuReport:          'İçeriği şikayet et',
+    menuBlock:           'Bu kullanıcıyı engelle',
+    reportTitle:         'İçeriği şikayet et',
+    reportReasonPrompt:  'Bunu neden şikayet ediyorsun?',
+    reasons: {
+      spam:       'Spam veya yanıltıcı',
+      offensive:  'Rahatsız edici veya uygunsuz',
+      harassment: 'Taciz veya zorbalık',
+      other:      'Diğer',
+    },
+    reportThanksTitle:   'Şikayetin alındı',
+    reportThanksBody:    'Topluluğu güvende tuttuğun için teşekkürler. Ekibimiz bu içeriği 24 saat içinde inceleyecek.',
+    reportError:         'Şikayetin gönderilemedi. Lütfen tekrar dene.',
+    blockTitle:          'Bu kullanıcıyı engelle?',
+    blockMessage:        'Artık sorularını veya cevaplarını görmeyeceksin ve seninle iletişim kuramayacak.',
+    blockConfirm:        'Engelle',
+    blockedTitle:        'Kullanıcı engellendi',
+    blockedBody:         'Bu kullanıcının içeriklerini artık görmeyeceksin.',
+    blockError:          'Kullanıcı engellenemedi. Lütfen tekrar dene.',
+    unblock:             'Engeli kaldır',
+    blockedListTitle:    'Engellenen Kullanıcılar',
+    blockedListEmpty:    'Henüz kimseyi engellemedin.',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────────
@@ -47,6 +75,8 @@ const tr = {
   sheet: {
     answersLabel:       'cevap',
     yesLabel:           'evet',
+    votesCount:         '{{n}} oy',
+    deleteQuestion:     'Soruyu sil',
     voteYes:            'Evet',
     voteNo:             'Hayır',
     voteCasting:        'Oy verdin — sonuçlar yükleniyor…',
@@ -167,6 +197,7 @@ const tr = {
     deleteTitle:    'Hesabımı Sil',
     deleteMessage:  'Profilin ve tüm verilerin kalıcı olarak silinecek. Bu işlem geri alınamaz.\n\nDevam edilsin mi?',
     deleteConfirm:  'Hesabı Sil',
+    deleteError:    'Hesabın silinemedi. Bağlantını kontrol edip tekrar dene.',
   },
 
   // ─── Timeline screen ─────────────────────────────────────────────────────────
@@ -208,6 +239,15 @@ const tr = {
     usernameLabel:  'KULLANICI ADI',
     genderLabel:    'CİNSİYET',
     avatarLabel:    'AVATAR',
+    stepLabel:        'Adım {{step}}/{{total}}',
+    showPass:         'Göster',
+    hidePass:         'Gizle',
+    passwordPlaceholder: 'Şifren',
+    usernamePlaceholder: 'örn. CuriousFox',
+    usernameHint:     '2–20 karakter, boşluk yok',
+    photoPermTitle:   'İzin gerekli',
+    photoPermBody:    'Galeri erişimine izin ver.',
+    userNotFound:     'Kullanıcı bulunamadı.',
     genders: {
       male:   'Erkek',
       female: 'Kadın',
@@ -300,6 +340,8 @@ const tr = {
     addOption:    '+ Seçenek ekle',
     submit:       'Yayınla',
     locationErr:  'Konum gerekli',
+    errorNoLocation: 'Konumun alınamadı. Konumu açıp tekrar dene.',
+    errorPost:    'Soru gönderilemedi. {{msg}}',
     step1Title:   'Ne sormak istiyorsun?',
     step1Sub:     'Soru türünü seç, sonra detayları gir.',
     step2Title:   'Soruyu yaz',
@@ -317,6 +359,63 @@ const tr = {
   cluster: {
     nearby:   '{{n}} yakın soru',
     locked:   'Premium',
+  },
+
+  // ─── Notifications (local + channels) ──────────────────────────────────────────
+  notif: {
+    channelSocial:     'Sosyal',
+    channelNearby:     'Yakındaki Sorular',
+    channelEngagement: 'Hatırlatıcılar',
+    placeFallback:     'Etrafında',
+    daily1Title: 'Bugün haritana baktın mı? 🗺️',
+    daily1Body:  '{{place}} cevaplanmayı bekleyen sorular var.',
+    daily2Title: '{{place}} neler oluyor?',
+    daily2Body:  'Cevapla, oy ver — mahalleni şekillendir.',
+    daily3Title: 'Soruların cevap bekliyor ✨',
+    daily3Body:  '{{place}} bugün yeni aktivite var.',
+  },
+
+  // ─── Question badges (map pins) ────────────────────────────────────────────────
+  badge: {
+    hot:     'Sıcak',
+    popular: 'Popüler',
+    new:     'Yeni',
+  },
+
+  // ─── Poll vote options (display labels) ────────────────────────────────────────
+  vote: {
+    yes: 'Evet',
+    no:  'Hayır',
+  },
+
+  // ─── Content filter (objectionable content) ────────────────────────────────────
+  filter: {
+    blockedTitle: 'İçeriğe izin verilmiyor',
+    blockedBody:  'Gönderin hakaret veya uygunsuz ifade içeriyor gibi görünüyor. Lütfen düzeltip tekrar dene.',
+  },
+
+  // ─── EULA / topluluk kuralları (Guideline 1.2) ─────────────────────────────────
+  eula: {
+    title:        'Topluluk Kuralları',
+    intro:        'Lore anonim bir topluluktur. Herkesin güvenliği için devam etmeden önce aşağıdakileri kabul etmelisin:',
+    rule1:        'Uygunsuz, nefret içeren veya saldırgan içeriğe sıfır tolerans vardır.',
+    rule2:        'Saldırgan içerik paylaşan veya başkalarını taciz eden kullanıcılar kaldırılır.',
+    rule3:        'İstediğin zaman içerik şikayet edebilir veya kullanıcı engelleyebilirsin. Şikayetleri 24 saat içinde inceliyoruz.',
+    agreeCheckbox: 'Kullanım Şartları\'nı (EULA) kabul ediyorum ve yukarıdaki kuralları okudum.',
+    agreeButton:  'Kabul Et ve Devam Et',
+    mustAgree:    'Devam etmek için kuralları kabul etmelisin.',
+    terms:        'Kullanım Şartları (EULA)',
+    privacy:      'Gizlilik Politikası',
+  },
+
+  // ─── Kendi gönderini silme (Guideline 1.2) ─────────────────────────────────────
+  ownPost: {
+    deleteQuestionTitle:   'Soruyu sil',
+    deleteQuestionMessage: 'Bu soru ve cevapları kalıcı olarak kaldırılacak. Devam edilsin mi?',
+    deleteAnswerTitle:     'Cevabı sil',
+    deleteAnswerMessage:   'Bu cevap kalıcı olarak kaldırılacak. Devam edilsin mi?',
+    delete:                'Sil',
+    deleteError:           'Silinemedi. Lütfen tekrar dene.',
   },
 } as const;
 

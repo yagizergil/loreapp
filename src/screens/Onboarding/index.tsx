@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Dimensions, ScrollView, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Alert, Image,
+  ActivityIndicator, Alert, Image, Linking,
 } from 'react-native';
+import { LINKS } from '../../lib/links';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
@@ -99,11 +100,12 @@ function LegendChip({ color, label }: { color: string; label: string }) {
   );
 }
 
-function BackRow({ onPress, label = 'Geri' }: { onPress: () => void; label?: string }) {
+function BackRow({ onPress, label }: { onPress: () => void; label?: string }) {
+  const backLabel = label ?? i18n.t('common.back');
   return (
     <TouchableOpacity style={s.backRow} onPress={onPress} hitSlop={14}>
       <Text style={s.backChev}>‹</Text>
-      <Text style={s.backLabel}>{label}</Text>
+      <Text style={s.backLabel}>{backLabel}</Text>
     </TouchableOpacity>
   );
 }
@@ -111,7 +113,7 @@ function BackRow({ onPress, label = 'Geri' }: { onPress: () => void; label?: str
 function StepBadge({ step, total }: { step: number; total: number }) {
   return (
     <View style={s.stepBadge}>
-      <Text style={s.stepText}>Adım {step}/{total}</Text>
+      <Text style={s.stepText}>{i18n.t('onboarding.stepLabel', { step, total })}</Text>
     </View>
   );
 }
@@ -176,7 +178,7 @@ function AvatarGrid({ selected, onChange }: { selected: string; onChange: (key: 
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-type Screen = 'landing' | 'slides' | 'profile-type' | 'account-creds' | 'signin' | 'profile-setup';
+type Screen = 'landing' | 'slides' | 'eula' | 'profile-type' | 'account-creds' | 'signin' | 'profile-setup';
 
 interface Props {
   onComplete: (p: LocalProfile) => void;
@@ -194,6 +196,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
   const isUpgrade = !!upgradeProfile;
   const [screen, setScreen]       = useState<Screen>(isUpgrade ? 'profile-type' : 'landing');
   const [mode, setMode]           = useState<'anon' | 'account' | 'apple'>('anon');
+  const [eulaAgreed, setEulaAgreed] = useState(false);
   const [appleUserId, setAppleUserId] = useState<string | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [slideIdx, setSlideIdx]   = useState(0);
@@ -235,7 +238,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
   async function pickPhoto() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('İzin gerekli', 'Galeri erişimine izin ver.');
+      Alert.alert(i18n.t('onboarding.photoPermTitle'), i18n.t('onboarding.photoPermBody'));
       return;
     }
     const r = await ImagePicker.launchImageLibraryAsync({
@@ -418,7 +421,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
     try {
       await signInWithEmail(email.trim().toLowerCase(), password);
       const authUser = await getAuthUser();
-      if (!authUser) throw new Error('Kullanıcı bulunamadı.');
+      if (!authUser) throw new Error(i18n.t('onboarding.userNotFound'));
       const profile = await fetchProfileByAuthUserId(authUser.id);
       if (!profile) {
         // Upgrade mode: this account has no profile yet → attach it to the
@@ -510,7 +513,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
           <TouchableOpacity onPress={slideIdx === 0 ? () => go('landing') : () => setSlideIdx(i => i - 1)} hitSlop={14}>
             <Text style={s.backChev}>‹</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => go('profile-type')} hitSlop={14}>
+          <TouchableOpacity onPress={() => go('eula')} hitSlop={14}>
             <Text style={s.navSkip}>{t('onboarding.skip')}</Text>
           </TouchableOpacity>
         </View>
@@ -541,7 +544,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
             style={[s.btnPrimary, { backgroundColor: slide.accent }]}
             activeOpacity={0.85}
             onPress={() => {
-              if (isLast) { go('profile-type'); return; }
+              if (isLast) { go('eula'); return; }
               fadeO.value = withTiming(0, { duration: 120 });
               setTimeout(() => {
                 setSlideIdx(i => i + 1);
@@ -550,6 +553,61 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
             }}
           >
             <Text style={s.btnPrimaryText}>{isLast ? t('onboarding.start') : t('common.next')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // ── EULA / COMMUNITY RULES (Guideline 1.2) ───────────────────────────────────
+
+  if (screen === 'eula') {
+    return (
+      <View style={[s.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.base }}>
+          <BackRow onPress={() => go('slides')} />
+        </View>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={s.eulaTitle}>{t('eula.title')}</Text>
+          <Text style={s.eulaIntro}>{t('eula.intro')}</Text>
+
+          <View style={s.eulaRuleRow}><Text style={s.eulaBullet}>•</Text><Text style={s.eulaRule}>{t('eula.rule1')}</Text></View>
+          <View style={s.eulaRuleRow}><Text style={s.eulaBullet}>•</Text><Text style={s.eulaRule}>{t('eula.rule2')}</Text></View>
+          <View style={s.eulaRuleRow}><Text style={s.eulaBullet}>•</Text><Text style={s.eulaRule}>{t('eula.rule3')}</Text></View>
+
+          <View style={s.eulaLinksRow}>
+            <TouchableOpacity onPress={() => Linking.openURL(LINKS.terms)} hitSlop={10}>
+              <Text style={s.eulaLink}>{t('eula.terms')}</Text>
+            </TouchableOpacity>
+            <Text style={s.eulaLinkSep}>·</Text>
+            <TouchableOpacity onPress={() => Linking.openURL(LINKS.privacy)} hitSlop={10}>
+              <Text style={s.eulaLink}>{t('eula.privacy')}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={s.eulaCheckRow}
+            activeOpacity={0.8}
+            onPress={() => setEulaAgreed((v) => !v)}
+          >
+            <View style={[s.eulaCheckbox, eulaAgreed && s.eulaCheckboxOn]}>
+              {eulaAgreed && <Text style={s.eulaCheckmark}>✓</Text>}
+            </View>
+            <Text style={s.eulaCheckLabel}>{t('eula.agreeCheckbox')}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
+          <TouchableOpacity
+            style={[s.btnPrimary, !eulaAgreed && { opacity: 0.4 }]}
+            activeOpacity={0.85}
+            disabled={!eulaAgreed}
+            onPress={() => go('profile-type')}
+          >
+            <Text style={s.btnPrimaryText}>{t('eula.agreeButton')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -683,7 +741,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
               returnKeyType="done"
             />
             <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPass(v => !v)} activeOpacity={0.7}>
-              <Text style={s.eyeText}>{showPass ? 'Gizle' : 'Göster'}</Text>
+              <Text style={s.eyeText}>{showPass ? i18n.t('onboarding.hidePass') : i18n.t('onboarding.showPass')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -762,7 +820,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
               style={[s.input, { flex: 1 }]}
               value={password}
               onChangeText={setPassword}
-              placeholder="Şifren"
+              placeholder={i18n.t('onboarding.passwordPlaceholder')}
               placeholderTextColor={palette.ink40}
               secureTextEntry={!showPass}
               autoCapitalize="none"
@@ -771,7 +829,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
               onSubmitEditing={handleSignIn}
             />
             <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPass(v => !v)} activeOpacity={0.7}>
-              <Text style={s.eyeText}>{showPass ? 'Gizle' : 'Göster'}</Text>
+              <Text style={s.eyeText}>{showPass ? i18n.t('onboarding.hidePass') : i18n.t('onboarding.showPass')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -840,14 +898,14 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
           style={s.input}
           value={nickname}
           onChangeText={setNickname}
-          placeholder="örn. CuriousFox"
+          placeholder={i18n.t('onboarding.usernamePlaceholder')}
           placeholderTextColor={palette.ink40}
           maxLength={20}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="done"
         />
-        <Text style={s.inputHint}>2–20 karakter, boşluk yok</Text>
+        <Text style={s.inputHint}>{i18n.t('onboarding.usernameHint')}</Text>
 
         <View style={{ height: spacing.base }} />
 
@@ -1171,5 +1229,35 @@ const s = StyleSheet.create({
   legal: {
     fontFamily: fontFamily.body, fontSize: 11,
     color: palette.ink40, textAlign: 'center', lineHeight: 16,
+  },
+
+  // EULA / community rules
+  eulaTitle: {
+    fontFamily: fontFamily.display, fontSize: 26, color: palette.ink00,
+    marginBottom: spacing.sm,
+  },
+  eulaIntro: {
+    fontFamily: fontFamily.body, fontSize: fontSize.sm, color: palette.ink20,
+    lineHeight: fontSize.sm * 1.5, marginBottom: spacing.md,
+  },
+  eulaRuleRow: { flexDirection: 'row', marginBottom: spacing.sm, paddingRight: spacing.sm },
+  eulaBullet: { color: palette.accent, fontSize: fontSize.base, marginRight: 8, lineHeight: fontSize.sm * 1.5 },
+  eulaRule: {
+    flex: 1, fontFamily: fontFamily.body, fontSize: fontSize.sm,
+    color: palette.ink10, lineHeight: fontSize.sm * 1.5,
+  },
+  eulaLinksRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: spacing.sm, marginBottom: spacing.lg },
+  eulaLink: { fontFamily: fontFamily.bodySemiBold, fontSize: fontSize.sm, color: palette.accent },
+  eulaLinkSep: { color: palette.ink40 },
+  eulaCheckRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: spacing.sm },
+  eulaCheckbox: {
+    width: 24, height: 24, borderRadius: 6, borderWidth: 1.5,
+    borderColor: palette.ink60, alignItems: 'center', justifyContent: 'center', marginTop: 1,
+  },
+  eulaCheckboxOn: { backgroundColor: palette.accent, borderColor: palette.accent },
+  eulaCheckmark: { color: palette.white, fontSize: 15, fontFamily: fontFamily.bodySemiBold },
+  eulaCheckLabel: {
+    flex: 1, fontFamily: fontFamily.body, fontSize: fontSize.sm,
+    color: palette.ink10, lineHeight: fontSize.sm * 1.5,
   },
 });

@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useProfile } from '../../lib/ProfileContext';
 import { clearLocalProfile } from '../../lib/storage';
-import { fetchUserStats, signOut, deleteAccount } from '../../lib/supabase';
+import { fetchUserStats, signOut, deleteAccount, fetchBlockedProfiles, unblockUser, Profile } from '../../lib/supabase';
 import { authEvents } from '../../lib/authEvents';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import Avatar from '../../components/ui/Avatar';
@@ -152,6 +152,24 @@ export default function ProfileScreen() {
   const [busySignOut, setBusySignOut]   = useState(false);
   const [busyDelete, setBusyDelete]     = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
+  const [showBlocked, setShowBlocked] = useState(false);
+  const [blocked, setBlocked] = useState<Profile[]>([]);
+  const [loadingBlocked, setLoadingBlocked] = useState(false);
+
+  const openBlocked = useCallback(() => {
+    setShowBlocked(true);
+    setLoadingBlocked(true);
+    fetchBlockedProfiles(profile.id)
+      .then(setBlocked)
+      .catch(() => setBlocked([]))
+      .finally(() => setLoadingBlocked(false));
+  }, [profile.id]);
+
+  const handleUnblock = useCallback((blockedId: string) => {
+    unblockUser(profile.id, blockedId)
+      .then(() => setBlocked((prev) => prev.filter((b) => b.id !== blockedId)))
+      .catch(() => {});
+  }, [profile.id]);
 
   const LANGS = [
     { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
@@ -212,12 +230,13 @@ export default function ProfileScreen() {
           onPress: async () => {
             setBusyDelete(true);
             try {
+              // Sunucudaki silme BAŞARILI olmadan yerel state'i temizleme;
+              // aksi halde kullanıcı "silindi" sanır ama veriler sunucuda kalır.
               await deleteAccount(profile.id);
               await clearLocalProfile();
               authEvents.onSignOut();
             } catch {
-              await clearLocalProfile().catch(() => {});
-              authEvents.onSignOut();
+              Alert.alert(t('common.error'), t('profile.deleteError'));
             } finally {
               setBusyDelete(false);
             }
@@ -360,6 +379,12 @@ export default function ProfileScreen() {
           />
           <Divider />
           <SettingRow
+            icon={<Text style={{ fontSize: 15 }}>🚫</Text>}
+            label={t('moderation.blockedListTitle')}
+            onPress={openBlocked}
+          />
+          <Divider />
+          <SettingRow
             icon={<Text style={{ fontSize: 15 }}>📍</Text>}
             label={t('profile.rows.location')}
             value={t('profile.rows.locationValue')}
@@ -456,6 +481,41 @@ export default function ProfileScreen() {
               </React.Fragment>
             );
           })}
+        </View>
+      </Modal>
+
+      {/* Blocked users management */}
+      <Modal
+        visible={showBlocked}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowBlocked(false)}
+      >
+        <Pressable style={lp.backdrop} onPress={() => setShowBlocked(false)} />
+        <View style={lp.sheet}>
+          <View style={lp.handle} />
+          <Text style={lp.title}>{t('moderation.blockedListTitle')}</Text>
+          {loadingBlocked ? (
+            <ActivityIndicator color={palette.accent} style={{ marginVertical: spacing.lg }} />
+          ) : blocked.length === 0 ? (
+            <Text style={{ color: palette.ink40, fontFamily: fontFamily.body, fontSize: fontSize.sm, textAlign: 'center', paddingVertical: spacing.lg }}>
+              {t('moderation.blockedListEmpty')}
+            </Text>
+          ) : (
+            blocked.map((b, idx) => (
+              <React.Fragment key={b.id}>
+                {idx > 0 && <View style={lp.sep} />}
+                <View style={[lp.row, { justifyContent: 'space-between' }]}>
+                  <Text style={lp.label} numberOfLines={1}>{b.nickname}</Text>
+                  <TouchableOpacity onPress={() => handleUnblock(b.id)} hitSlop={10}>
+                    <Text style={{ color: palette.accent, fontFamily: fontFamily.bodySemiBold, fontSize: fontSize.sm }}>
+                      {t('moderation.unblock')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </React.Fragment>
+            ))
+          )}
         </View>
       </Modal>
     </View>

@@ -9,6 +9,7 @@ const en = {
     error:    'Error',
     or:       'or',
     next:     'Next →',
+    back:     'Back',
     now:      'just now',
     ago: {
       minutes: '{{n}}m',
@@ -16,6 +17,33 @@ const en = {
       days:    '{{n}}d',
       weeks:   '{{n}}w',
     },
+  },
+
+  // ─── Moderation (UGC — report & block) ───────────────────────────────────────
+  moderation: {
+    menuTitle:           'Options',
+    menuReport:          'Report content',
+    menuBlock:           'Block this user',
+    reportTitle:         'Report content',
+    reportReasonPrompt:  'Why are you reporting this?',
+    reasons: {
+      spam:       'Spam or misleading',
+      offensive:  'Offensive or inappropriate',
+      harassment: 'Harassment or bullying',
+      other:      'Other',
+    },
+    reportThanksTitle:   'Report received',
+    reportThanksBody:    'Thanks for keeping the community safe. Our team will review this content within 24 hours.',
+    reportError:         'Could not submit your report. Please try again.',
+    blockTitle:          'Block this user?',
+    blockMessage:        'You will no longer see their questions or answers, and they cannot contact you.',
+    blockConfirm:        'Block',
+    blockedTitle:        'User blocked',
+    blockedBody:         'You will no longer see content from this user.',
+    blockError:          'Could not block this user. Please try again.',
+    unblock:             'Unblock',
+    blockedListTitle:    'Blocked Users',
+    blockedListEmpty:    'You haven’t blocked anyone.',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────────
@@ -47,6 +75,8 @@ const en = {
   sheet: {
     answersLabel:       'answers',
     yesLabel:           'yes',
+    votesCount:         '{{n}} votes',
+    deleteQuestion:     'Delete question',
     voteYes:            'Yes',
     voteNo:             'No',
     voteCasting:        'Voted — loading results…',
@@ -167,6 +197,7 @@ const en = {
     deleteTitle:    'Delete Account',
     deleteMessage:  'Your profile and all data will be permanently deleted. This cannot be undone.\n\nContinue?',
     deleteConfirm:  'Delete Account',
+    deleteError:    'Could not delete your account. Please check your connection and try again.',
   },
 
   // ─── Timeline screen ─────────────────────────────────────────────────────────
@@ -208,6 +239,15 @@ const en = {
     usernameLabel:  'USERNAME',
     genderLabel:    'GENDER',
     avatarLabel:    'AVATAR',
+    stepLabel:        'Step {{step}}/{{total}}',
+    showPass:         'Show',
+    hidePass:         'Hide',
+    passwordPlaceholder: 'Your password',
+    usernamePlaceholder: 'e.g. CuriousFox',
+    usernameHint:     '2–20 characters, no spaces',
+    photoPermTitle:   'Permission needed',
+    photoPermBody:    'Please allow access to your photo library.',
+    userNotFound:     'User not found.',
     genders: {
       male:   'Male',
       female: 'Female',
@@ -300,6 +340,8 @@ const en = {
     addOption:    '+ Add option',
     submit:       'Post',
     locationErr:  'Location required',
+    errorNoLocation: 'We could not get your location. Enable location and try again.',
+    errorPost:    'Could not post your question. {{msg}}',
     step1Title:   'What do you want to ask?',
     step1Sub:     'Choose a question type, then add the details.',
     step2Title:   'Write your question',
@@ -317,6 +359,63 @@ const en = {
   cluster: {
     nearby:   '{{n}} nearby questions',
     locked:   'Premium',
+  },
+
+  // ─── Notifications (local + channels) ──────────────────────────────────────────
+  notif: {
+    channelSocial:     'Social',
+    channelNearby:     'Nearby Questions',
+    channelEngagement: 'Reminders',
+    placeFallback:     'around you',
+    daily1Title: 'Have you checked your map today? 🗺️',
+    daily1Body:  'There are questions waiting to be answered near {{place}}.',
+    daily2Title: 'What\'s happening near {{place}}?',
+    daily2Body:  'Answer, vote — shape your neighborhood.',
+    daily3Title: 'Your questions are waiting for answers ✨',
+    daily3Body:  'There\'s new activity near {{place}} today.',
+  },
+
+  // ─── Question badges (map pins) ────────────────────────────────────────────────
+  badge: {
+    hot:     'Hot',
+    popular: 'Popular',
+    new:     'New',
+  },
+
+  // ─── Poll vote options (display labels) ────────────────────────────────────────
+  vote: {
+    yes: 'Yes',
+    no:  'No',
+  },
+
+  // ─── Content filter (objectionable content) ────────────────────────────────────
+  filter: {
+    blockedTitle: 'Content not allowed',
+    blockedBody:  'Your post seems to contain offensive or inappropriate language. Please revise it and try again.',
+  },
+
+  // ─── EULA / community guidelines (Guideline 1.2) ───────────────────────────────
+  eula: {
+    title:        'Community Rules',
+    intro:        'Lore is an anonymous community. To keep everyone safe, you must agree to the following before continuing:',
+    rule1:        'There is zero tolerance for objectionable, hateful, or abusive content.',
+    rule2:        'Users who post offensive content or harass others will be removed.',
+    rule3:        'You can report content or block users at any time. We review reports within 24 hours.',
+    agreeCheckbox: 'I agree to the Terms of Use (EULA) and have read the rules above.',
+    agreeButton:  'Agree & Continue',
+    mustAgree:    'You must agree to the rules to continue.',
+    terms:        'Terms of Use (EULA)',
+    privacy:      'Privacy Policy',
+  },
+
+  // ─── Delete own content (Guideline 1.2) ────────────────────────────────────────
+  ownPost: {
+    deleteQuestionTitle:   'Delete question',
+    deleteQuestionMessage: 'This question and its answers will be permanently removed. Continue?',
+    deleteAnswerTitle:     'Delete answer',
+    deleteAnswerMessage:   'This answer will be permanently removed. Continue?',
+    delete:                'Delete',
+    deleteError:           'Could not delete. Please try again.',
   },
 } as const;
 

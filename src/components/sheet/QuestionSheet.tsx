@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, ScrollView, Modal, Pressable, Dimensions,
+  ActivityIndicator, ScrollView, Modal, Pressable, Dimensions, Alert,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withTiming, withSequence, interpolate,
 } from 'react-native-reanimated';
-import { Question, Answer, fetchAnswers, submitAnswer, reportQuestion, countTodayAnswers, FREE_DAILY_ANSWER_LIMIT } from '../../lib/supabase';
+import { Question, Answer, fetchAnswers, submitAnswer, countTodayAnswers, FREE_DAILY_ANSWER_LIMIT, deleteOwnQuestion } from '../../lib/supabase';
+import { moderationMenu, reportQuestionFlow } from '../../lib/moderation';
 import { paywallEvents } from '../../lib/premiumEvents';
 import { usePremium } from '../../lib/PremiumContext';
 import { getQuestionBadge, BADGE_META } from '../../lib/questionBadge';
@@ -24,6 +25,7 @@ interface Props {
   onClose: () => void;
   onAnswered: (questionId: string) => void;
   onOpenAnswers: (question: Question) => void;
+  onDeleted?: (questionId: string) => void;
 }
 
 function timeAgo(dateStr: string): string {
@@ -61,7 +63,7 @@ function VoteBar({ label, count, total, color }: { label: string; count: number;
         <Text style={voteStyles.label}>{label}</Text>
         <Text style={[voteStyles.pct, { color }]}>{pct}%</Text>
       </View>
-      <Text style={voteStyles.count}>{count} oy</Text>
+      <Text style={voteStyles.count}>{i18n.t('sheet.votesCount', { n: count })}</Text>
     </View>
   );
 }
@@ -69,7 +71,7 @@ function VoteBar({ label, count, total, color }: { label: string; count: number;
 // ── Main sheet ────────────────────────────────────────────────────────────────
 
 export default function QuestionSheet({
-  question, profileId, hasAnswered, onClose, onAnswered, onOpenAnswers,
+  question, profileId, hasAnswered, onClose, onAnswered, onOpenAnswers, onDeleted,
 }: Props) {
   const { t } = useTranslation();
   const [answers, setAnswers]             = useState<Answer[]>([]);
@@ -230,7 +232,7 @@ export default function QuestionSheet({
                 </View>
                 {badgeMeta && (
                   <View style={[styles.typePill, { backgroundColor: badgeMeta.bg, borderColor: badgeMeta.color + '55' }]}>
-                    <Text style={[styles.typeText, { color: badgeMeta.color }]}>{badgeMeta.label}</Text>
+                    <Text style={[styles.typeText, { color: badgeMeta.color }]}>{t(`badge.${badge}`)}</Text>
                   </View>
                 )}
               </View>
@@ -466,13 +468,50 @@ export default function QuestionSheet({
               </View>
             )}
 
-            {/* Report */}
-            <TouchableOpacity
-              style={styles.reportBtn}
-              onPress={() => reportQuestion(question.id, profileId, 'user_report').catch(() => {})}
-            >
-              <Text style={styles.reportText}>{t('sheet.report')}</Text>
-            </TouchableOpacity>
+            {/* Own question → Delete; others → Report / Block */}
+            {question.author_id === profileId ? (
+              <TouchableOpacity
+                style={styles.reportBtn}
+                onPress={() =>
+                  Alert.alert(
+                    t('ownPost.deleteQuestionTitle'),
+                    t('ownPost.deleteQuestionMessage'),
+                    [
+                      { text: t('common.cancel'), style: 'cancel' },
+                      {
+                        text: t('ownPost.delete'),
+                        style: 'destructive',
+                        onPress: async () => {
+                          try {
+                            await deleteOwnQuestion(question.id, profileId);
+                            onDeleted?.(question.id);
+                            onClose();
+                          } catch {
+                            Alert.alert(t('common.error'), t('ownPost.deleteError'));
+                          }
+                        },
+                      },
+                    ],
+                  )
+                }
+              >
+                <Text style={styles.reportText}>{t('sheet.deleteQuestion')}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.reportBtn}
+                onPress={() =>
+                  moderationMenu({
+                    reporterId: profileId,
+                    authorId: question.author_id,
+                    onReport: () => reportQuestionFlow(question.id, profileId),
+                    onBlocked: onClose,
+                  })
+                }
+              >
+                <Text style={styles.reportText}>{t('sheet.report')}</Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </View>
       </Animated.View>

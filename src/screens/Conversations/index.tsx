@@ -29,6 +29,7 @@ interface ConvItem {
   other: Profile;
   lastMessageBody: string;
   lastMessageTime: string;
+  unreadCount: number;
 }
 
 export default function ConversationsScreen() {
@@ -56,14 +57,18 @@ export default function ConversationsScreen() {
           const otherId = c.user1_id === profile.id ? c.user2_id : c.user1_id;
           const msgs = await fetchMessages(c.id);
           const last = msgs[msgs.length - 1];
+          const unreadCount = msgs.filter((m) => m.sender_id !== profile.id && !m.read).length;
           return {
             conversation: c,
             other: othersMap[otherId] ?? { id: otherId, nickname: '?', avatar: 'OW', gender: null },
             lastMessageBody: last?.body ?? '',
             lastMessageTime: last?.created_at ?? c.created_at,
+            unreadCount,
           };
         })
       );
+      enriched.sort((a, b) =>
+        new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
       setItems(enriched);
     } catch {}
     finally { setLoading(false); }
@@ -111,12 +116,22 @@ export default function ConversationsScreen() {
 
                 <View style={styles.rowBody}>
                   <View style={styles.rowTop}>
-                    <Text style={styles.name}>{item.other.nickname}</Text>
-                    <Text style={styles.time}>{timeAgo(item.lastMessageTime)}</Text>
+                    <Text style={[styles.name, item.unreadCount > 0 && styles.nameUnread]}>{item.other.nickname}</Text>
+                    <Text style={[styles.time, item.unreadCount > 0 && styles.timeUnread]}>{timeAgo(item.lastMessageTime)}</Text>
                   </View>
-                  <Text style={styles.preview} numberOfLines={1}>
-                    {item.lastMessageBody || '—'}
-                  </Text>
+                  <View style={styles.previewRow}>
+                    <Text
+                      style={[styles.preview, item.unreadCount > 0 && styles.previewUnread]}
+                      numberOfLines={1}
+                    >
+                      {item.lastMessageBody || '—'}
+                    </Text>
+                    {item.unreadCount > 0 && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{item.unreadCount > 9 ? '9+' : item.unreadCount}</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </TouchableOpacity>
             );
@@ -172,6 +187,25 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.body,
     fontSize: fontSize.sm,
     color: palette.ink40,
+    flex: 1,
+  },
+  nameUnread: { color: palette.ink00 },
+  timeUnread: { color: palette.accent },
+  previewRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  previewUnread: { color: palette.ink00, fontFamily: fontFamily.bodySemiBold },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    backgroundColor: palette.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: palette.ink00,
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.xs,
   },
 
   empty: {

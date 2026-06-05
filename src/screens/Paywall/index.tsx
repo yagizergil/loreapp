@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -290,56 +291,64 @@ export default function PaywallScreen() {
         <View style={s.closeV} />
       </TouchableOpacity>
 
-      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <View style={s.hero}>
-        <View style={s.iconRing}>
-          <View style={s.lockOuter}>
-            <View style={s.lockArc} />
-            <View style={s.lockBody}>
-              <View style={s.lockHole} />
+      {/* ── Scrollable content (never overlaps the CTA on any screen size) ───── */}
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+        <View style={s.hero}>
+          <View style={s.iconRing}>
+            <View style={s.lockOuter}>
+              <View style={s.lockArc} />
+              <View style={s.lockBody}>
+                <View style={s.lockHole} />
+              </View>
             </View>
           </View>
+
+          <View style={s.eyebrowRow}>
+            <View style={s.eyebrowDot} />
+            <Text style={s.eyebrow}>{t('paywall.eyebrow')}</Text>
+            <View style={s.eyebrowDot} />
+          </View>
+
+          <Text style={s.title}>{title}</Text>
+          <Text style={s.subtitle}>{subtitle}</Text>
         </View>
 
-        <View style={s.eyebrowRow}>
-          <View style={s.eyebrowDot} />
-          <Text style={s.eyebrow}>{t('paywall.eyebrow')}</Text>
-          <View style={s.eyebrowDot} />
+        {/* ── Benefits ─────────────────────────────────────────────────────────── */}
+        <View style={s.benefits}>
+          {benefits.map((b) => <CheckRow key={b} text={b} />)}
         </View>
 
-        <Text style={s.title}>{title}</Text>
-        <Text style={s.subtitle}>{subtitle}</Text>
-      </View>
+        {/* ── Divider ──────────────────────────────────────────────────────────── */}
+        <View style={s.divider} />
 
-      {/* ── Benefits ─────────────────────────────────────────────────────────── */}
-      <View style={s.benefits}>
-        {benefits.map((b) => <CheckRow key={b} text={b} />)}
-      </View>
+        {/* ── Savings anchor ───────────────────────────────────────────────────── */}
+        {savingsStr ? <Text style={s.savings}>{savingsStr}</Text> : null}
 
-      {/* ── Divider ──────────────────────────────────────────────────────────── */}
-      <View style={s.divider} />
-
-      {/* ── Savings anchor ───────────────────────────────────────────────────── */}
-      {savingsStr ? <Text style={s.savings}>{savingsStr}</Text> : null}
-
-      {/* ── Plan cards ───────────────────────────────────────────────────────── */}
-      <View style={s.plans}>
-        <PlanCard
-          active={plan === 'yearly'}
-          label={t('paywall.yearly')}
-          price={yearlyPerMoStr + t('paywall.monthlyPer')}
-          sub={yearlySub}
-          badge={t('paywall.yearlyBadge')}
-          onPress={() => setPlan('yearly')}
-        />
-        <PlanCard
-          active={plan === 'monthly'}
-          label={t('paywall.monthly')}
-          price={monthlyPriceStr + t('paywall.monthlyPer')}
-          sub={monthlySub}
-          onPress={() => setPlan('monthly')}
-        />
-      </View>
+        {/* ── Plan cards ───────────────────────────────────────────────────────── */}
+        <View style={s.plans}>
+          <PlanCard
+            active={plan === 'yearly'}
+            label={t('paywall.yearly')}
+            price={yearlyPerMoStr + t('paywall.monthlyPer')}
+            sub={yearlySub}
+            badge={t('paywall.yearlyBadge')}
+            onPress={() => setPlan('yearly')}
+          />
+          <PlanCard
+            active={plan === 'monthly'}
+            label={t('paywall.monthly')}
+            price={monthlyPriceStr + t('paywall.monthlyPer')}
+            sub={monthlySub}
+            onPress={() => setPlan('monthly')}
+          />
+        </View>
+      </ScrollView>
 
       {/* ── Sticky CTA ───────────────────────────────────────────────────────── */}
       <View style={[s.bottom, { paddingBottom: insets.bottom + 8 }]}>
@@ -390,6 +399,8 @@ const s = StyleSheet.create({
     backgroundColor: palette.ink90,
     paddingHorizontal: spacing.lg,
   },
+  scroll: { flex: 1 },
+  scrollContent: { paddingTop: spacing.xs, paddingBottom: spacing.sm },
 
   // ── Close ──────────────────────────────────────────────────────────────────
   closeBtn: {
@@ -551,7 +562,7 @@ const s = StyleSheet.create({
   // ── Plan cards ─────────────────────────────────────────────────────────────
   plans: {
     gap: spacing.sm,
-    flex: 1,
+    marginTop: spacing.sm, // room for the "BEST · 50% OFF" badge above the card
   },
   planCard: {
     flexDirection: 'row',

@@ -119,7 +119,7 @@ export default function ClusterSheet({ questions, lockedIds = new Set(), onSelec
                           {badgeMeta && (
                             <View style={[styles.badgeChip, { backgroundColor: badgeMeta.bg }]}>
                               <Text style={[styles.badgeText, { color: badgeMeta.color }]}>
-                                {badgeMeta.label}
+                                {t(`badge.${badge}`)}
                               </Text>
                             </View>
                           )}

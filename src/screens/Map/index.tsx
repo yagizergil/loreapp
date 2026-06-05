@@ -9,17 +9,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapView, { MapStyleElement, Region, Circle, Marker } from 'react-native-maps';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { Question, fetchNearbyQuestions, fetchUserAnsweredQuestionIds, fetchRegionQuestionCount } from '../../lib/supabase';
+import { Question, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds } from '../../lib/supabase';
 import { useProfile } from '../../lib/ProfileContext';
 import { usePremium } from '../../lib/PremiumContext';
 import { useUnreadCounts } from '../../lib/UnreadCountsContext';
 import { mapAskEvent } from '../../lib/mapEvents';
-import { paywallEvents } from '../../lib/premiumEvents';
-import { distanceKm, FREE_RADIUS_KM } from '../../lib/distance';
+import { distanceKm, FREE_RADIUS_KM, PREMIUM_RADIUS_KM, MIN_NEARBY_QUESTIONS, MAX_NEARBY_QUESTIONS } from '../../lib/distance';
 import { getQuestionBadge } from '../../lib/questionBadge';
 import { useNotifications } from '../../hooks/useNotifications';
 import {
@@ -32,8 +32,8 @@ import {
   mapStyle,
 } from '../../theme/tokens';
 import QuestionPin from '../../components/map/QuestionPin';
-import { SealMark, MINE_SHADE, TYPE_SHADE } from '../../components/map/SealMark';
-import { IconBell } from '../../components/ui/Icons';
+import { SealMark, TYPE_SHADE } from '../../components/map/SealMark';
+import { IconBell, IconLocateMe } from '../../components/ui/Icons';
 import QuestionSheet from '../../components/sheet/QuestionSheet';
 import AskQuestionModal from '../../components/sheet/AskQuestionModal';
 import { useTranslation } from 'react-i18next';
@@ -41,14 +41,16 @@ import { useTranslation } from 'react-i18next';
 
 // Ücretsiz kullanıcı bu mesafeden uzaktaki bir alana bakıyorsa "başka şehir"
 // sayılır → gerçek pin yerine teaser gösterilir (yüklenen set ~80km yarıçaplı).
-const FAR_REGION_KM = 70;
-
 const ISTANBUL = {
   latitude: 41.0082,
   longitude: 28.9784,
   latitudeDelta: 0.08,
   longitudeDelta: 0.08,
 };
+
+// Persisted last known region → used as fallback when Location Services are off
+// so the app keeps showing a relevant area instead of a hardcoded default.
+const LAST_REGION_KEY = '@lore/last_region';
 
 export default function MapScreen() {
   const profile = useProfile();
@@ -65,6 +67,7 @@ export default function MapScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
   const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
   const { isPremium } = usePremium();
 
   // Render merkezi: görünen pin seti bu noktaya en yakın olanlardan seçilir.
@@ -73,12 +76,6 @@ export default function MapScreen() {
   const [renderCenter, setRenderCenter] = useState({ lat: ISTANBUL.latitude, lng: ISTANBUL.longitude });
   const lastFetchCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   const fetchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Ücretsiz kullanıcı uzaktaki bir şehre kaydırınca, orada soru varsa tek bir
-  // büyük "teaser" pin gösterilir; tıklayınca paywall (başka şehirler premium).
-  const [teaserPin, setTeaserPin] = useState<{ lat: number; lng: number } | null>(null);
-  const teaserPinRef = useRef<{ lat: number; lng: number } | null>(null);
-  const teaserCountRef = useRef(0);
 
   // Notification setup — registers push token, schedules local notifications
   useNotifications({
@@ -103,45 +100,14 @@ export default function MapScreen() {
       if (regionDebounceRef.current) clearTimeout(regionDebounceRef.current);
       regionDebounceRef.current = setTimeout(() => setZoom(next), 200);
     }
-    // Hareket bittikten SONRA, debounce ile: render merkezini güncelle ve
-    // (premium ise) görünen bölgeyi fetch et. Gesture sırasında ASLA tetiklenmez.
+    // Hareket bittikten SONRA, debounce ile sadece render merkezini güncelle.
+    // Artık pan/zoom'da YENİDEN fetch YOK: soru seti kullanıcının etrafındaki
+    // 4 km ile sınırlı (≤60). Bu, harita kasmasını ve marker remount'unu önler.
     if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
     fetchDebounceRef.current = setTimeout(() => {
       setRenderCenter({ lat: r.latitude, lng: r.longitude });
-      if (isPremium) { maybeFetchRegion(r); return; }
-      // Ücretsiz: uzaktaki (kendi bölgesinin dışındaki) bir şehre YAKLAŞINCA ve
-      // orada soru varsa tek bir teaser pin göster. Aşağıdaki koşullar glitch'i
-      // ve şehre varmadan erken görünmeyi engeller:
-      //  • Yeterince zoom yapılmış olmalı (tüm ülke görünürken gösterme).
-      //  • Kullanıcının kendi bölgesinin dışında olmalı.
-      //  • Sayım yarıçapı viewport ile sınırlı (yoldaki uzak şehri yakalamaz).
-      if (!userLocation) return;
-      const viewKm = r.latitudeDelta * 111;
-      const d = distanceKm(userLocation.lat, userLocation.lng, r.latitude, r.longitude);
-
-      // Zaten gösterilen teaser'a hâlâ yakınsak yerinde bırak (pan'da zıplamasın).
-      const cur = teaserPinRef.current;
-      if (cur && distanceKm(cur.lat, cur.lng, r.latitude, r.longitude) < 25) return;
-
-      // Çok uzaktan (ülke geneli) bakarken veya kendi bölgesindeyken teaser yok.
-      if (viewKm > 90 || d <= FAR_REGION_KM) {
-        teaserPinRef.current = null;
-        setTeaserPin(null);
-        return;
-      }
-
-      const radiusM = Math.min(40000, Math.max(15000, viewKm * 1000 * 0.5));
-      const center = { lat: r.latitude, lng: r.longitude };
-      fetchRegionQuestionCount(center.lat, center.lng, radiusM)
-        .then((count) => {
-          const next = count > 0 ? center : null;
-          teaserCountRef.current = count;
-          teaserPinRef.current = next;
-          setTeaserPin(next);
-        })
-        .catch(() => {});
-    }, 350);
-  }, [isPremium, userLocation]);
+    }, 250);
+  }, []);
 
   const isLocked = useCallback((q: Question) => {
     if (isPremium || !userLocation) return false;
@@ -153,7 +119,9 @@ export default function MapScreen() {
   const filteredQuestions = (filter === 'all'
     ? questions
     : questions.filter((q) => getQuestionBadge(q) === filter)
-  ).filter((q) => !answeredIds.has(q.id));
+  )
+    .filter((q) => !blockedIds.has(q.author_id))
+    .filter((q) => q.author_id === profile.id || !answeredIds.has(q.id));
 
   // Compute stable spread offsets for same-coordinate pins (computed once per questions array,
   // not per zoom/region change — so pins never jump or move).
@@ -186,7 +154,7 @@ export default function MapScreen() {
   // değişmez — yani marker'lar mid-gesture mount/unmount olmaz, harita crash etmez.
   // questions store'u büyüyebilir (sadece veri); gerçek <Marker> sayısı bu cap ile sınırlı.
   const visibleQuestions = useMemo(() => {
-    const MAX_VISIBLE_PINS = 150;
+    const MAX_VISIBLE_PINS = 80;
     if (filteredQuestions.length <= MAX_VISIBLE_PINS) return filteredQuestions;
     const c = renderCenter;
     return [...filteredQuestions]
@@ -200,11 +168,6 @@ export default function MapScreen() {
     return () => { mapAskEvent.trigger = () => {}; };
   }, []);
 
-  // Premium açıldığında teaser pin'i temizle (isPremium context'ten canlı gelir).
-  useEffect(() => {
-    if (isPremium) { teaserPinRef.current = null; setTeaserPin(null); }
-  }, [isPremium]);
-
   // Load all previously answered question IDs from DB so they persist across sessions
   useEffect(() => {
     fetchUserAnsweredQuestionIds(profile.id)
@@ -212,16 +175,27 @@ export default function MapScreen() {
       .catch(() => {});
   }, [profile.id]);
 
+  // Load blocked user IDs so their questions never appear on the map.
+  useFocusEffect(
+    useCallback(() => {
+      fetchBlockedIds(profile.id)
+        .then((ids) => setBlockedIds(new Set(ids)))
+        .catch(() => {});
+    }, [profile.id])
+  );
+
   const loadingRef = useRef(false);
   async function loadQuestions(lat: number, lng: number) {
     if (loadingRef.current) return; // prevent concurrent fetches
     loadingRef.current = true;
     try {
-      // Tek seferde geniş alanı çek (~tüm İstanbul). Böylece uzaktaki pinler de
-      // (1 km ötesi kilitli/premium) yüklenir; pan/zoom'da YENİDEN çekmiyoruz, o
-      // yüzden marker'lar remount olmaz ve harita crash etmez. Görünür pin sayısı
-      // questions_nearby (limit 200) + viewport culling (max 120) ile sınırlı.
-      setQuestions(await fetchNearbyQuestions(lat, lng, 80000));
+      // Performans: yalnızca premium yarıçapı (4 km) içindeki soruları, mesafeye
+      // göre sıralı ve sabit üst sınırla (60) çek. Seyrek bölgede sunucu otomatik
+      // genişletip en az 10'a tamamlar. Free kullanıcıda 1 km ötesi kilitli pin
+      // olarak görünür. Böylece harita asla şişmez / kasmaz.
+      setQuestions(
+        await fetchQuestionsAround(lat, lng, PREMIUM_RADIUS_KM * 1000, MIN_NEARBY_QUESTIONS, MAX_NEARBY_QUESTIONS),
+      );
       lastFetchCenterRef.current = { lat, lng };
       setRenderCenter({ lat, lng });
     } catch {
@@ -229,27 +203,6 @@ export default function MapScreen() {
     } finally {
       loadingRef.current = false;
     }
-  }
-
-  // Premium: harita başka bölgeye kaydırılınca o bölgenin sorularını çek ve
-  // mevcut sete MERGE et (silme yok → ekrandaki marker'lar remount olmaz).
-  // Yalnızca yeterince uzağa hareket edildiyse fetch eder (gereksiz istek olmasın).
-  function maybeFetchRegion(r: Region) {
-    const last = lastFetchCenterRef.current;
-    const movedKm = last ? distanceKm(last.lat, last.lng, r.latitude, r.longitude) : Infinity;
-    const viewKm = r.latitudeDelta * 111; // viewport yüksekliği (~km)
-    if (movedKm < Math.max(20, viewKm * 0.5)) return; // yeterince uzaklaşmadı
-    lastFetchCenterRef.current = { lat: r.latitude, lng: r.longitude };
-    const radiusM = Math.min(200000, Math.max(80000, viewKm * 1000));
-    fetchNearbyQuestions(r.latitude, r.longitude, radiusM)
-      .then((fetched) => {
-        setQuestions((prev) => {
-          const byId = new Map(prev.map((q) => [q.id, q]));
-          for (const q of fetched) byId.set(q.id, q);
-          return Array.from(byId.values());
-        });
-      })
-      .catch(() => {});
   }
 
   // Refetch when the Map regains focus (e.g. arriving via a "nearby new question"
@@ -265,7 +218,22 @@ export default function MapScreen() {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        await loadQuestions(ISTANBUL.latitude, ISTANBUL.longitude);
+        // Location not shared → app stays fully functional (Guideline 5.1.5).
+        // Show the user's last known region if we have one, else a default area.
+        // Browsing, answering, messaging and profile all work without location;
+        // only posting a new question asks the user to enable location.
+        let region = ISTANBUL;
+        try {
+          const saved = await AsyncStorage.getItem(LAST_REGION_KEY);
+          if (saved) {
+            const r = JSON.parse(saved);
+            if (typeof r?.latitude === 'number' && typeof r?.longitude === 'number') {
+              region = { ...ISTANBUL, latitude: r.latitude, longitude: r.longitude };
+            }
+          }
+        } catch { /* ignore */ }
+        mapRef.current?.animateToRegion(region, 600);
+        await loadQuestions(region.latitude, region.longitude);
         return;
       }
 
@@ -292,6 +260,9 @@ export default function MapScreen() {
       const lat = loc.coords.latitude;
       const lng = loc.coords.longitude;
       setUserLocation({ lat, lng });
+      // Remember this region as the fallback for sessions where the user later
+      // turns Location Services off.
+      AsyncStorage.setItem(LAST_REGION_KEY, JSON.stringify({ latitude: lat, longitude: lng })).catch(() => {});
       mapRef.current?.animateToRegion(
         { latitude: lat, longitude: lng, latitudeDelta: CIRCLE_DELTA, longitudeDelta: CIRCLE_DELTA },
         last ? 400 : 800
@@ -385,7 +356,18 @@ export default function MapScreen() {
         toolbarEnabled={false}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
-        {/* Free zone circle */}
+        {/* Premium zone circle (faint) — the locked 1–4 km ring for free users */}
+        {userLocation && !isPremium && (
+          <Circle
+            center={{ latitude: userLocation.lat, longitude: userLocation.lng }}
+            radius={PREMIUM_RADIUS_KM * 1000}
+            strokeColor={palette.accent + '44'}
+            fillColor={palette.accent + '08'}
+            strokeWidth={1}
+          />
+        )}
+
+        {/* Free zone circle — questions inside this are open */}
         {userLocation && !isPremium && (
           <Circle
             center={{ latitude: userLocation.lat, longitude: userLocation.lng }}
@@ -416,19 +398,6 @@ export default function MapScreen() {
           );
         })}
 
-        {/* Teaser pin: ücretsiz kullanıcı başka şehre bakınca (orada soru varsa) */}
-        {!isPremium && teaserPin && (
-          <Marker
-            coordinate={{ latitude: teaserPin.lat, longitude: teaserPin.lng }}
-            onPress={() => paywallEvents.show('region', { count: teaserCountRef.current })}
-            tracksViewChanges={false}
-            anchor={{ x: 0.5, y: 0.5 }}
-          >
-            <View style={styles.teaserWrap}>
-              <SealMark size={64} shade={MINE_SHADE} gid="teaserSeal" />
-            </View>
-          </Marker>
-        )}
       </MapView>
 
       {/* Top bar with BlurView */}
@@ -498,11 +467,7 @@ export default function MapScreen() {
             activeOpacity={0.8}
             onPress={handleGoToMyLocation}
           >
-            <View style={styles.targetOuter}>
-              <View style={styles.targetInner} />
-              <View style={styles.targetLineH} />
-              <View style={styles.targetLineV} />
-            </View>
+            <IconLocateMe color={palette.ink00} size={22} strokeWidth={1.8} />
           </TouchableOpacity>
         </View>
       )}
@@ -521,6 +486,7 @@ export default function MapScreen() {
             const parent = navigation.getParent() as any;
             parent?.navigate('Answers', { question: q, profileId: profile.id });
           }}
+          onDeleted={(qid) => setQuestions((prev) => prev.filter((q) => q.id !== qid))}
         />
       )}
 
@@ -541,10 +507,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: palette.ink90,
-  },
-  teaserWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   topBarWrapper: {
     position: 'absolute',
@@ -673,33 +635,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.ink60,
     ...shadow.sm,
-  },
-  targetOuter: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    borderColor: palette.ink10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  targetInner: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: palette.accent,
-  },
-  targetLineH: {
-    position: 'absolute',
-    width: 24,
-    height: 1.5,
-    backgroundColor: palette.ink40,
-  },
-  targetLineV: {
-    position: 'absolute',
-    width: 1.5,
-    height: 24,
-    backgroundColor: palette.ink40,
   },
 });
 
