@@ -14,6 +14,7 @@ import { supabase } from '../../lib/supabase';
 import { moderationMenu, reportUserFlow } from '../../lib/moderation';
 import { containsObjectionableContent } from '../../lib/contentFilter';
 import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/tokens';
+import { contentWidth } from '../../theme/responsive';
 import { RootStackParamList } from '../../navigation';
 import Avatar from '../../components/ui/Avatar';
 import { useTranslation } from 'react-i18next';
@@ -334,7 +335,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   bubble: {
-    maxWidth: '74%',
+    maxWidth: Math.round(contentWidth * 0.74),
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
     borderRadius: radius.lg,

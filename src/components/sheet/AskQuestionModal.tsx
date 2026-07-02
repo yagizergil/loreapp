@@ -9,6 +9,7 @@ import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { QuestionType, postQuestion } from '../../lib/supabase';
 import { containsObjectionableContent } from '../../lib/contentFilter';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
+import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
@@ -448,8 +449,10 @@ export default function AskQuestionModal({ profileId, userLocation, onClose, onP
 
 const m = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
-  kav:      { flex: 1, justifyContent: 'flex-end' },
+  kav:      { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
   sheet: {
+    width: '100%',
+    maxWidth: CONTENT_MAX_WIDTH,
     backgroundColor: palette.ink80,
     borderTopLeftRadius:  radius.xl,
     borderTopRightRadius: radius.xl,

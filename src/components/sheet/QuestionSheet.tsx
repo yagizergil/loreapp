@@ -13,6 +13,7 @@ import { paywallEvents } from '../../lib/premiumEvents';
 import { usePremium } from '../../lib/PremiumContext';
 import { getQuestionBadge, BADGE_META } from '../../lib/questionBadge';
 import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/tokens';
+import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
@@ -523,17 +524,18 @@ export default function QuestionSheet({
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
   cardWrapper: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     pointerEvents: 'box-none' as any,
   },
   card: {
     width: '90%',
+    maxWidth: CONTENT_MAX_WIDTH,
     maxHeight: SCREEN_HEIGHT * 0.75,
     backgroundColor: palette.ink80,
     borderRadius: radius.xl,

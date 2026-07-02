@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Dimensions, ScrollView, KeyboardAvoidingView, Platform,
+  ScrollView, KeyboardAvoidingView, Platform,
   ActivityIndicator, Alert, Image, Linking,
 } from 'react-native';
 import { LINKS } from '../../lib/links';
@@ -25,8 +25,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import WaxSeal from '../../components/ui/WaxSeal';
 import CityMap from '../../components/ui/CityMap';
-
-const { width: W } = Dimensions.get('window');
+import { contentWidth as W, CONTENT_MAX_WIDTH } from '../../theme/responsive';
 
 // ─── Onboarding slides ────────────────────────────────────────────────────────
 
@@ -568,7 +567,10 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
           <BackRow onPress={() => go('slides')} />
         </View>
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg }}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg,
+            width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center',
+          }}
           showsVerticalScrollIndicator={false}
         >
           <Text style={s.eulaTitle}>{t('eula.title')}</Text>
@@ -993,6 +995,7 @@ const s = StyleSheet.create({
   slideText: {
     flex: 1, paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg, gap: 10,
+    width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center',
   },
   slideTitle: {
     fontFamily: fontFamily.display, fontSize: 26, lineHeight: 32,

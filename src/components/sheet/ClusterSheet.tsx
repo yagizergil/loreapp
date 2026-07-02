@@ -9,6 +9,7 @@ import Animated, {
 import { Question } from '../../lib/supabase';
 import { getQuestionBadge, badgePriority, BADGE_META } from '../../lib/questionBadge';
 import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/tokens';
+import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
@@ -147,17 +148,18 @@ export default function ClusterSheet({ questions, lockedIds = new Set(), onSelec
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
   cardWrapper: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     pointerEvents: 'box-none' as any,
   },
   card: {
     width: '90%',
+    maxWidth: CONTENT_MAX_WIDTH,
     backgroundColor: palette.ink80,
     borderRadius: radius.xl,
     borderWidth: StyleSheet.hairlineWidth,
