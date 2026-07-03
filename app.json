@@ -67,7 +67,9 @@
       "eas": {
         "projectId": "a2bfe8c9-6074-4bf9-9c0e-1b9ddc65c13a"
       },
-      "revenueCatIosApiKey": "appl_naIUsZgRtpkUnljVaNZzArpxReP"
+      "revenueCatIosApiKey": "appl_naIUsZgRtpkUnljVaNZzArpxReP",
+      "posthogApiKey": "phc_sxipCdQbKajSuqzt7eAv5JBx4JfmwkKGRp9oWE8Cd47t",
+      "posthogHost": "https://us.i.posthog.com"
     }
   }
 }

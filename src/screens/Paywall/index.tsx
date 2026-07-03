@@ -18,6 +18,7 @@ import { usePremium } from '../../lib/PremiumContext';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation';
 import { LINKS } from '../../lib/links';
+import { track } from '../../lib/analytics';
 
 type Plan = 'monthly' | 'yearly';
 type PaywallRoute = RouteProp<RootStackParamList, 'Paywall'>;
@@ -111,6 +112,12 @@ export default function PaywallScreen() {
   const [busy, setBusy] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Analytics: one paywall_shown per mount, tagged with the trigger that opened it.
+  useEffect(() => {
+    track('paywall_shown', { trigger, count });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Kullanıcı bu ekrana geldiğinde zaten premium miydi? (mount anındaki değer)
   const wasPremiumAtMount = useRef(isPremium);
 
@@ -169,14 +176,17 @@ export default function PaywallScreen() {
       Alert.alert(t('paywall.errorTitle'), t('paywall.errorUnavailable'));
       return;
     }
+    track('purchase_started', { trigger, plan });
     setBusy(true);
     const res = await purchase(pkg);
     setBusy(false);
     if (res.ok) {
+      track('purchase_succeeded', { trigger, plan });
       // Satın alma başarılı: premium tespit edilse de edilmese de (RC senkron
       // gecikmesine karşı) başarı ekranını göster. mirror zaten premium'u açar.
       setShowSuccess(true);
     } else if (!res.cancelled) {
+      track('purchase_failed', { trigger, plan });
       Alert.alert(t('paywall.errorTitle'), t('paywall.errorBody'));
     }
   }
@@ -187,6 +197,7 @@ export default function PaywallScreen() {
     const res = await restore();
     setBusy(false);
     if (res.ok && res.isPremium) {
+      track('purchase_restored', { trigger });
       setShowSuccess(true);
     } else if (res.ok) {
       Alert.alert(t('paywall.restoreNoneTitle'), t('paywall.restoreNoneBody'));
@@ -286,7 +297,7 @@ export default function PaywallScreen() {
       {/* ── Close ────────────────────────────────────────────────────────────── */}
       <TouchableOpacity
         style={s.closeBtn}
-        onPress={() => navigation.goBack()}
+        onPress={() => { track('paywall_dismissed', { trigger }); navigation.goBack(); }}
         activeOpacity={0.7}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
@@ -372,7 +383,7 @@ export default function PaywallScreen() {
         <Text style={s.legalNote}>{t('paywall.autoRenewNote')}</Text>
 
         <View style={s.footerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.6} hitSlop={12} disabled={busy}>
+          <TouchableOpacity onPress={() => { track('paywall_dismissed', { trigger }); navigation.goBack(); }} activeOpacity={0.6} hitSlop={12} disabled={busy}>
             <Text style={s.dismiss}>{t('paywall.dismiss')}</Text>
           </TouchableOpacity>
           <Text style={s.footerSep}>·</Text>

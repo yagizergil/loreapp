@@ -26,6 +26,7 @@ import {
   fetchBlockedIds, toggleAnswerUpvote, fetchUpvotedAnswerIds, deleteOwnAnswer,
 } from '../../lib/supabase';
 import { paywallEvents } from '../../lib/premiumEvents';
+import { track } from '../../lib/analytics';
 import { usePremium } from '../../lib/PremiumContext';
 import { supabase } from '../../lib/supabase';
 import { moderationMenu, reportAnswerFlow } from '../../lib/moderation';
@@ -556,7 +557,7 @@ export default function AnswersScreen() {
     if (submitting || answered) return;
     if (!isPremium) {
       const todayCount = await countTodayAnswers(profileId);
-      if (todayCount >= FREE_DAILY_ANSWER_LIMIT) { paywallEvents.show('limit'); return; }
+      if (todayCount >= FREE_DAILY_ANSWER_LIMIT) { track('answer_blocked_limit', { type: question.type }); paywallEvents.show('limit'); return; }
     }
     setSubmitting(true);
     try {
@@ -564,6 +565,7 @@ export default function AnswersScreen() {
       setAnswers((prev) => prev.some((a) => a.id === newAnswer.id) ? prev : [...prev, newAnswer]);
       setMyChoice(choice);
       setAnswered(true);
+      track('answer_submitted', { type: question.type });
     } catch {}
     finally { setSubmitting(false); }
   }
@@ -579,7 +581,7 @@ export default function AnswersScreen() {
     }
     if (!isPremium) {
       const todayCount = await countTodayAnswers(profileId);
-      if (todayCount >= FREE_DAILY_ANSWER_LIMIT) { paywallEvents.show('limit'); return; }
+      if (todayCount >= FREE_DAILY_ANSWER_LIMIT) { track('answer_blocked_limit', { type: question.type }); paywallEvents.show('limit'); return; }
     }
     setSubmitting(true);
     try {
@@ -587,6 +589,7 @@ export default function AnswersScreen() {
       setAnswers((prev) => prev.some((a) => a.id === newAnswer.id) ? prev : [...prev, newAnswer]);
       setText('');
       setAnswered(true);
+      track('answer_submitted', { type: question.type });
     } catch (e: any) {
       if (e?.code === '23505') setAnswered(true); // already answered (duplicate)
     }

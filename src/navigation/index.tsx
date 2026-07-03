@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationEvents } from '../lib/notificationEvents';
 import { UnreadCountsProvider, useUnreadCounts } from '../lib/UnreadCountsContext';
 import { Question, fetchQuestionById } from '../lib/supabase';
+import { initAnalytics, identifyAnalytics, resetAnalytics, track } from '../lib/analytics';
 import OnboardingScreen from '../screens/Onboarding';
 import MapScreen from '../screens/Map';
 import TimelineScreen from '../screens/Timeline';
@@ -204,9 +205,19 @@ export default function Navigation({ initialProfile }: Props) {
   const hasProfile = !!profile?.id && !!profile?.nickname;
   const navRef = React.useRef<any>(null);
 
+  // Analytics: init once, then identify/reset as the profile changes.
+  useEffect(() => {
+    initAnalytics();
+    track('app_opened');
+  }, []);
+
+  useEffect(() => {
+    if (hasProfile && profile?.id) identifyAnalytics(profile.id);
+  }, [hasProfile, profile?.id]);
+
   // Sign-out / account-delete: Profile screen fires authEvents.onSignOut → clears state → shows Onboarding
   useEffect(() => {
-    authEvents.onSignOut = () => { setUpgrading(null); setProfile(null); };
+    authEvents.onSignOut = () => { resetAnalytics(); setUpgrading(null); setProfile(null); };
     // Anonymous → real account: keep the current profile mounted, but overlay
     // onboarding in "upgrade" mode so premium/content survive a cancel.
     authEvents.onUpgradeAccount = (current) => setUpgrading(current);

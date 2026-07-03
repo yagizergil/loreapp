@@ -69,6 +69,9 @@ const en = {
     random:       'Random',
     appName:      'lore',
     otherCityTeaser: 'View with Premium',
+    emptyTitle:   "You're early here",
+    emptyBody:    'No questions nearby yet — be the first to ask one and get the conversation started.',
+    emptyCta:     'Ask the first question',
   },
 
   // ─── Question Sheet (modal) ───────────────────────────────────────────────────

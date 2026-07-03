@@ -14,13 +14,15 @@ import MapView, { MapStyleElement, Region, Circle, Marker } from 'react-native-m
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { Question, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds } from '../../lib/supabase';
+import { Question, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds, fetchRegionQuestionCount } from '../../lib/supabase';
+import { track } from '../../lib/analytics';
 import { useProfile } from '../../lib/ProfileContext';
 import { usePremium } from '../../lib/PremiumContext';
 import { useUnreadCounts } from '../../lib/UnreadCountsContext';
 import { mapAskEvent } from '../../lib/mapEvents';
 import { distanceKm, FREE_RADIUS_KM, PREMIUM_RADIUS_KM, MIN_NEARBY_QUESTIONS, MAX_NEARBY_QUESTIONS } from '../../lib/distance';
 import { getQuestionBadge } from '../../lib/questionBadge';
+import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { useNotifications } from '../../hooks/useNotifications';
 import {
   palette,
@@ -68,6 +70,7 @@ export default function MapScreen() {
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
   const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const { isPremium } = usePremium();
 
   // Render merkezi: görünen pin seti bu noktaya en yakın olanlardan seçilir.
@@ -168,6 +171,11 @@ export default function MapScreen() {
     return () => { mapAskEvent.trigger = () => {}; };
   }, []);
 
+  useEffect(() => {
+    if (hasLoadedOnce && filteredQuestions.length === 0) track('empty_map_shown');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLoadedOnce, filteredQuestions.length === 0]);
+
   // Load all previously answered question IDs from DB so they persist across sessions
   useEffect(() => {
     fetchUserAnsweredQuestionIds(profile.id)
@@ -202,6 +210,7 @@ export default function MapScreen() {
       // network errors are silent — pins stay as they are
     } finally {
       loadingRef.current = false;
+      setHasLoadedOnce(true);
     }
   }
 
@@ -271,16 +280,33 @@ export default function MapScreen() {
     })();
   }, []);
 
+  // Beyond this distance a locked pin reads as "a different part of town / a
+  // different city" rather than "just past your 1km free radius" — the two
+  // paywall triggers already have distinct copy ('geo' vs 'region'), so route
+  // to the one that actually matches what the user tapped.
+  const REGION_DISTANCE_KM = 15;
+
   const handlePinPress = useCallback((q: Question) => {
     if (isLocked(q)) {
       const lockedCount = questions.filter(isLocked).length;
       const parent = navigation.getParent() as any;
-      parent?.navigate('Paywall', { trigger: 'geo', count: lockedCount });
+      const isFarRegion = !!userLocation &&
+        distanceKm(userLocation.lat, userLocation.lng, q.lat, q.lng) > REGION_DISTANCE_KM;
+
+      if (isFarRegion) {
+        track('locked_pin_tapped', { trigger: 'region' });
+        fetchRegionQuestionCount(q.lat, q.lng)
+          .then((regionCount) => parent?.navigate('Paywall', { trigger: 'region', count: regionCount || lockedCount }))
+          .catch(() => parent?.navigate('Paywall', { trigger: 'region', count: lockedCount }));
+      } else {
+        track('locked_pin_tapped', { trigger: 'geo' });
+        parent?.navigate('Paywall', { trigger: 'geo', count: lockedCount });
+      }
       return;
     }
     setViewedIds((prev) => new Set(prev).add(q.id));
     setSelectedQuestion(q);
-  }, [isLocked, navigation, questions]);
+  }, [isLocked, navigation, questions, userLocation]);
 
   const [mapRefreshKey, setMapRefreshKey] = useState(0);
 
@@ -473,6 +499,24 @@ export default function MapScreen() {
       )}
 
 
+      {/* Empty region explainer — first-launch users outside seeded areas see
+          this instead of a silent blank map (App Store review, Guideline 2.1). */}
+      {hasLoadedOnce && filteredQuestions.length === 0 && !selectedQuestion && !showAsk && (
+        <View style={styles.emptyCard} pointerEvents="box-none">
+          <View style={styles.emptyCardInner}>
+            <SealMark size={40} shade={TYPE_SHADE.open} gid="emptySeal" />
+            <Text style={styles.emptyTitle}>{t('map.emptyTitle')}</Text>
+            <Text style={styles.emptyBody}>{t('map.emptyBody')}</Text>
+            <TouchableOpacity
+              style={styles.emptyCta}
+              activeOpacity={0.85}
+              onPress={() => { track('empty_map_ask_tapped'); setShowAsk(true); }}
+            >
+              <Text style={styles.emptyCtaText}>{t('map.emptyCta')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Question Sheet */}
       {selectedQuestion && (
@@ -635,6 +679,53 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.ink60,
     ...shadow.sm,
+  },
+
+  emptyCard: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    top: '38%',
+    alignItems: 'center',
+  },
+  emptyCardInner: {
+    width: '100%',
+    maxWidth: CONTENT_MAX_WIDTH,
+    backgroundColor: palette.ink80 + 'F2',
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: palette.ink60,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.sm,
+    ...shadow.md,
+  },
+  emptyTitle: {
+    fontFamily: fontFamily.display,
+    fontSize: fontSize.lg,
+    color: palette.ink00,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+  },
+  emptyBody: {
+    fontFamily: fontFamily.body,
+    fontSize: fontSize.sm,
+    color: palette.ink20,
+    textAlign: 'center',
+    lineHeight: fontSize.sm * 1.4,
+  },
+  emptyCta: {
+    marginTop: spacing.xs,
+    backgroundColor: palette.accent,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 12,
+  },
+  emptyCtaText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.base,
+    color: palette.white,
   },
 });
 

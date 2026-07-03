@@ -14,6 +14,8 @@ import { usePremium } from '../../lib/PremiumContext';
 import { getQuestionBadge, BADGE_META } from '../../lib/questionBadge';
 import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/tokens';
 import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
+import { track } from '../../lib/analytics';
+import { maybeRequestReviewAfterAnswer } from '../../lib/reviewPrompt';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
@@ -135,7 +137,10 @@ export default function QuestionSheet({
     if (!question || answered || submitting) return;
     if (!isPremium) {
       const todayCount = await countTodayAnswers(profileId);
-      if (todayCount >= FREE_DAILY_ANSWER_LIMIT) { onClose(); setTimeout(() => paywallEvents.show('limit'), 300); return; }
+      if (todayCount >= FREE_DAILY_ANSWER_LIMIT) {
+        track('answer_blocked_limit', { type: question.type });
+        onClose(); setTimeout(() => paywallEvents.show('limit'), 300); return;
+      }
     }
     if (choice === 'Evet') yesScale.value = withSequence(withSpring(0.9), withSpring(1));
     if (choice === 'Hayır') noScale.value = withSequence(withSpring(0.9), withSpring(1));
@@ -146,6 +151,8 @@ export default function QuestionSheet({
       setMyChoice(choice);
       confirmOpacity.value = withTiming(1, { duration: 350 });
       setLocalAnswered(true);
+      track('answer_submitted', { type: question.type });
+      maybeRequestReviewAfterAnswer(track);
       onAnswered(question.id);
     } catch (e: any) {
       if (e?.code === '23505') {
@@ -166,13 +173,18 @@ export default function QuestionSheet({
     if (!question || !openText.trim() || submitting) return;
     if (!isPremium) {
       const todayCount = await countTodayAnswers(profileId);
-      if (todayCount >= FREE_DAILY_ANSWER_LIMIT) { onClose(); setTimeout(() => paywallEvents.show('limit'), 300); return; }
+      if (todayCount >= FREE_DAILY_ANSWER_LIMIT) {
+        track('answer_blocked_limit', { type: question.type });
+        onClose(); setTimeout(() => paywallEvents.show('limit'), 300); return;
+      }
     }
     setSubmitting(true);
     try {
       await submitAnswer(question.id, profileId, { body: openText.trim() });
       confirmOpacity.value = withTiming(1, { duration: 350 });
       setLocalAnswered(true);
+      track('answer_submitted', { type: question.type });
+      maybeRequestReviewAfterAnswer(track);
       onAnswered(question.id);
     } catch (e: any) {
       if (e?.code === '23505') { setLocalAnswered(true); onAnswered(question.id); }

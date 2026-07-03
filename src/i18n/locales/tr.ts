@@ -69,6 +69,9 @@ const tr = {
     random:       'Rastgele',
     appName:      'lore',
     otherCityTeaser: 'Premium ile gör',
+    emptyTitle:   'Burada henüz kimse yok',
+    emptyBody:    'Yakınında henüz soru yok — ilk soruyu sen sor ve sohbeti başlat.',
+    emptyCta:     'İlk soruyu sor',
   },
 
   // ─── Question Sheet (modal) ───────────────────────────────────────────────────
