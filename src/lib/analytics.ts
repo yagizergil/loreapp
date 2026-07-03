@@ -29,7 +29,8 @@ export type AnalyticsEvent =
   | 'locked_pin_tapped'
   | 'empty_map_shown'
   | 'empty_map_ask_tapped'
-  | 'review_prompt_shown';
+  | 'review_prompt_shown'
+  | 'share_result';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;
 

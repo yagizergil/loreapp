@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, ScrollView, Modal, Pressable, Dimensions, Alert,
+  ActivityIndicator, ScrollView, Modal, Pressable, Dimensions, Alert, Share,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -12,6 +12,7 @@ import { moderationMenu, reportQuestionFlow } from '../../lib/moderation';
 import { paywallEvents } from '../../lib/premiumEvents';
 import { usePremium } from '../../lib/PremiumContext';
 import { getQuestionBadge, BADGE_META } from '../../lib/questionBadge';
+import { LINKS } from '../../lib/links';
 import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/tokens';
 import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { track } from '../../lib/analytics';
@@ -478,6 +479,22 @@ export default function QuestionSheet({
                     <Text style={styles.splitStatLabel}>{t('sheet.voteNo')}</Text>
                   </View>
                 </View>
+
+                <TouchableOpacity
+                  style={styles.shareBtn}
+                  activeOpacity={0.75}
+                  onPress={async () => {
+                    const pctYes = Math.round((yesVotes / totalVotes) * 100);
+                    track('share_result', { type: 'vote' });
+                    try {
+                      await Share.share({
+                        message: t('sheet.shareVoteMessage', { body: question.body, pct: pctYes, url: LINKS.appStoreListing }),
+                      });
+                    } catch {}
+                  }}
+                >
+                  <Text style={styles.shareBtnText}>{t('sheet.shareResult')}</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -794,6 +811,18 @@ const styles = StyleSheet.create({
   voteSummary: {
     marginBottom: spacing.lg,
     gap: spacing.sm,
+  },
+  shareBtn: {
+    alignSelf: 'center',
+    marginTop: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  shareBtnText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.xs,
+    color: palette.accent,
+    letterSpacing: 0.2,
   },
   splitBarWrap: {
     flexDirection: 'row',

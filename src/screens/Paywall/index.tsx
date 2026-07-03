@@ -4,12 +4,12 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Animated,
   ActivityIndicator,
   Alert,
   Linking,
   ScrollView,
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,7 @@ import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../th
 import { RootStackParamList } from '../../navigation';
 import { LINKS } from '../../lib/links';
 import { track } from '../../lib/analytics';
+import WaxSeal from '../../components/ui/WaxSeal';
 
 type Plan = 'monthly' | 'yearly';
 type PaywallRoute = RouteProp<RootStackParamList, 'Paywall'>;
@@ -136,18 +137,13 @@ export default function PaywallScreen() {
     }
   }, [isPremium, showSuccess]);
 
-  // Subtle pulse on CTA
-  const pulse = useRef(new Animated.Value(1)).current;
+  // One-shot spring entrance on the CTA (matches QuestionSheet's entrance vocabulary)
+  // instead of a looping pulse, which read as a generic growth-hack tell.
+  const ctaScale = useSharedValue(0.94);
   useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.025, duration: 1000, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1,     duration: 1000, useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [pulse]);
+    ctaScale.value = withSpring(1, { damping: 18, stiffness: 200 });
+  }, [ctaScale]);
+  const ctaStyle = useAnimatedStyle(() => ({ transform: [{ scale: ctaScale.value }] }));
 
   // ── Gerçek RevenueCat paketleri + fiyatları ──────────────────────────────────
   const monthlyPkg: PurchasesPackage | null = offering?.monthly ?? null;
@@ -315,12 +311,7 @@ export default function PaywallScreen() {
         {/* ── Hero ─────────────────────────────────────────────────────────────── */}
         <View style={s.hero}>
           <View style={s.iconRing}>
-            <View style={s.lockOuter}>
-              <View style={s.lockArc} />
-              <View style={s.lockBody}>
-                <View style={s.lockHole} />
-              </View>
-            </View>
+            <WaxSeal type="answered" size={48} gid="paywallHeroSeal" shadow={false} />
           </View>
 
           <View style={s.eyebrowRow}>
@@ -366,7 +357,7 @@ export default function PaywallScreen() {
 
       {/* ── Sticky CTA ───────────────────────────────────────────────────────── */}
       <View style={[s.bottom, { paddingBottom: insets.bottom + 8 }]}>
-        <Animated.View style={{ width: '100%', transform: [{ scale: pulse }] }}>
+        <Animated.View style={[{ width: '100%' }, ctaStyle]}>
           <TouchableOpacity
             style={[s.cta, busy && s.ctaDisabled]}
             activeOpacity={0.85}
@@ -461,31 +452,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
-  },
-  lockOuter:  { alignItems: 'center' },
-  lockArc: {
-    width: 15,
-    height: 10,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderWidth: 2.5,
-    borderBottomWidth: 0,
-    borderColor: palette.accent,
-  },
-  lockBody: {
-    width: 22,
-    height: 15,
-    borderRadius: 3,
-    backgroundColor: palette.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -1,
-  },
-  lockHole: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: palette.ink90,
   },
 
   eyebrowRow: {

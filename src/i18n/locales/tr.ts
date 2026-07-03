@@ -85,6 +85,8 @@ const tr = {
     voteCasting:        'Oy verdin — sonuçlar yükleniyor…',
     voteTotal:          '{{n}} oy',
     votesCollected:     '{{n}} oy toplandı',
+    shareResult:        'Sonucu paylaş',
+    shareVoteMessage:   '"{{body}}" — Lore\'da oyların %{{pct}}\'i Evet dedi. Uygulamayı indir: {{url}}',
     myVote:             'Oyun kullanıldı',
     leading:            'önde',
     totalVotesLine:     '{{total}} oy · Seçimin: {{choice}}',
@@ -162,7 +164,7 @@ const tr = {
     anonymous:       'Anonim',
     statQuestions:   'Soru',
     statAnswers:     'Cevap',
-    statTotal:       'Toplam',
+    statStreak:      'Gün serisi',
     gender: {
       male:   'Erkek',
       female: 'Kadın',
@@ -376,6 +378,8 @@ const tr = {
     daily2Body:  'Cevapla, oy ver — mahalleni şekillendir.',
     daily3Title: 'Soruların cevap bekliyor ✨',
     daily3Body:  '{{place}} bugün yeni aktivite var.',
+    streakTitle: '{{streak}} günlük serini kaybetme 🔥',
+    streakBody:  'Serini sürdürmek için bugün bir soru cevapla.',
   },
 
   // ─── Question badges (map pins) ────────────────────────────────────────────────

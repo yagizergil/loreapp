@@ -85,6 +85,8 @@ const en = {
     voteCasting:        'Voted — loading results…',
     voteTotal:          '{{n}} votes',
     votesCollected:     '{{n}} votes cast',
+    shareResult:        'Share result',
+    shareVoteMessage:   '"{{body}}" — {{pct}}% voted Yes on Lore. Get the app: {{url}}',
     myVote:             'Vote cast',
     leading:            'leading',
     totalVotesLine:     '{{total}} votes · Your pick: {{choice}}',
@@ -162,7 +164,7 @@ const en = {
     anonymous:       'Anonymous',
     statQuestions:   'Questions',
     statAnswers:     'Answers',
-    statTotal:       'Total',
+    statStreak:      'Day streak',
     gender: {
       male:   'Male',
       female: 'Female',
@@ -376,6 +378,8 @@ const en = {
     daily2Body:  'Answer, vote — shape your neighborhood.',
     daily3Title: 'Your questions are waiting for answers ✨',
     daily3Body:  'There\'s new activity near {{place}} today.',
+    streakTitle: 'Keep your {{streak}}-day streak alive 🔥',
+    streakBody:  'Answer one question today to keep it going.',
   },
 
   // ─── Question badges (map pins) ────────────────────────────────────────────────

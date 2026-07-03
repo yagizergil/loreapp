@@ -18,7 +18,7 @@ import {
   getUserLocationLabel,
 } from '../lib/notifications';
 import { notificationEvents, NotificationScreen } from '../lib/notificationEvents';
-import { saveUserLocation } from '../lib/supabase';
+import { saveUserLocation, fetchUserStats } from '../lib/supabase';
 
 interface Options {
   profileId:    string | null;
@@ -44,8 +44,11 @@ export function useNotifications({ profileId, userLat, userLng }: Options) {
   useEffect(() => {
     if (!profileId) return;
     (async () => {
-      const label = await getUserLocationLabel();
-      await scheduleDailyNudge(label);
+      const [label, stats] = await Promise.all([
+        getUserLocationLabel(),
+        fetchUserStats(profileId).catch(() => null),
+      ]);
+      await scheduleDailyNudge(label, stats?.streak ?? 0);
     })();
   // Only re-run when profile first available; location label is fetched inside
   // eslint-disable-next-line react-hooks/exhaustive-deps

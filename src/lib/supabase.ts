@@ -1,6 +1,7 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { computeAnswerStreak } from './streak';
 
 const SUPABASE_URL = 'https://pmzoeyrkhqavokuzoinz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_2DzwoSQP626Y2jddL5G8Cw_Cmr6RCAo';
@@ -465,12 +466,17 @@ export async function postQuestion(
   return data as Question;
 }
 
-export async function fetchUserStats(userId: string): Promise<{ questions: number; answers: number }> {
+export async function fetchUserStats(userId: string): Promise<{ questions: number; answers: number; streak: number }> {
   const [qRes, aRes] = await Promise.all([
     supabase.from('questions').select('id', { count: 'exact', head: true }).eq('author_id', userId),
-    supabase.from('answers').select('id', { count: 'exact', head: true }).eq('author_id', userId),
+    supabase.from('answers').select('created_at', { count: 'exact' }).eq('author_id', userId).order('created_at', { ascending: false }),
   ]);
-  return { questions: qRes.count ?? 0, answers: aRes.count ?? 0 };
+  const timestamps = (aRes.data ?? []).map((row: { created_at: string }) => row.created_at);
+  return {
+    questions: qRes.count ?? 0,
+    answers: aRes.count ?? 0,
+    streak: computeAnswerStreak(timestamps),
+  };
 }
 
 // ─── Delete own content (Guideline 1.2: immediate post removal) ──────────────

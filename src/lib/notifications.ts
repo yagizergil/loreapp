@@ -140,8 +140,19 @@ type NotifContent = {
 };
 
 export function buildDailyNudgeContent(
-  locationLabel: string | null
+  locationLabel: string | null,
+  streak = 0,
 ): NotifContent {
+  // A live streak is a stronger reason to come back than the generic rotating
+  // copy — prefer it whenever the user actually has one worth protecting.
+  if (streak >= 2) {
+    return {
+      title: i18n.t('notif.streakTitle', { streak }),
+      body:  i18n.t('notif.streakBody', { streak }),
+      data:  { screen: 'Map' },
+    };
+  }
+
   // Turkish uses a locative suffix on the place name; English keys are phrased
   // so the bare label reads naturally. When no place is known, fall back to a
   // localized "around you" phrase.
@@ -166,10 +177,10 @@ export function buildDailyNudgeContent(
  * Schedule a daily re-engagement notification at 18:00 local time.
  * Cancels any existing daily nudge first (idempotent).
  */
-export async function scheduleDailyNudge(locationLabel: string | null) {
+export async function scheduleDailyNudge(locationLabel: string | null, streak = 0) {
   await Notifications.cancelScheduledNotificationAsync(ID_DAILY_NUDGE).catch(() => {});
 
-  const content = buildDailyNudgeContent(locationLabel);
+  const content = buildDailyNudgeContent(locationLabel, streak);
 
   await Notifications.scheduleNotificationAsync({
     identifier: ID_DAILY_NUDGE,

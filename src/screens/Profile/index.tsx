@@ -147,7 +147,7 @@ export default function ProfileScreen() {
   const insets     = useSafeAreaInsets();
 
   const { t, i18n: i18nHook } = useTranslation();
-  const [stats, setStats]     = useState<{ questions: number; answers: number } | null>(null);
+  const [stats, setStats]     = useState<{ questions: number; answers: number; streak: number } | null>(null);
   const [notifOn, setNotifOn] = useState(true);
   const [busySignOut, setBusySignOut]   = useState(false);
   const [busyDelete, setBusyDelete]     = useState(false);
@@ -185,7 +185,7 @@ export default function ProfileScreen() {
   useFocusEffect(useCallback(() => {
     fetchUserStats(profile.id)
       .then(setStats)
-      .catch(() => setStats({ questions: 0, answers: 0 }));
+      .catch(() => setStats({ questions: 0, answers: 0, streak: 0 }));
   }, [profile.id]));
 
   // ── Sign out ─────────────────────────────────────────────────────────────
@@ -319,10 +319,10 @@ export default function ProfileScreen() {
           </View>
           <View style={s.statSep} />
           <View style={s.statItem}>
-            <Text style={s.statValue}>
-              {stats === null ? '—' : stats.questions + stats.answers}
-            </Text>
-            <Text style={s.statLabel}>{t('profile.statTotal')}</Text>
+            {stats === null
+              ? <ActivityIndicator color={palette.ink40} size="small" />
+              : <Text style={s.statValue}>{stats.streak}</Text>}
+            <Text style={s.statLabel}>{t('profile.statStreak')}</Text>
           </View>
         </View>
 

@@ -25,4 +25,12 @@ export const LINKS = {
   rate: APP_STORE_ID
     ? `itms-apps://apps.apple.com/app/id${APP_STORE_ID}?action=write-review`
     : 'itms-apps://apps.apple.com/app/lore',
+
+  /** Plain App Store listing — used in share sheets. https:// (not itms-apps://)
+   *  so it renders as a normal tappable link in Messages/WhatsApp/etc. There is
+   *  no in-app deep-link scheme configured yet, so shares link to the store
+   *  listing rather than back into a specific question. */
+  appStoreListing: APP_STORE_ID
+    ? `https://apps.apple.com/app/id${APP_STORE_ID}`
+    : 'https://apps.apple.com/app/lore',
 } as const;

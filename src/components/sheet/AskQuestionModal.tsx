@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, ScrollView, Modal, Pressable,
-  Dimensions, KeyboardAvoidingView, Platform, Animated, Alert,
+  Dimensions, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
@@ -276,10 +276,10 @@ export default function AskQuestionModal({ profileId, userLocation, onClose, onP
           <View style={m.charBarBg}>
             <View style={[m.charBarFill, {
               width: `${(questionBody.length / 120) * 100}%` as any,
-              backgroundColor: questionBody.length > 100 ? palette.error : typeColor,
+              backgroundColor: questionBody.length > 100 ? palette.warning : typeColor,
             }]} />
           </View>
-          <Text style={[m.charCount, questionBody.length > 100 && { color: palette.error }]}>
+          <Text style={[m.charCount, questionBody.length > 100 && { color: palette.warning }]}>
             {questionBody.length}/120
           </Text>
         </View>
