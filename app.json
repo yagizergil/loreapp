@@ -2,7 +2,7 @@
   "expo": {
     "name": "Lore",
     "slug": "lore",
-    "version": "1.1.4",
+    "version": "1.1.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -16,7 +16,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleAllowMixedLocalizations": true
       },
-      "buildNumber": "5",
+      "buildNumber": "6",
       "bundleIdentifier": "com.yagizergilvokario.lore"
     },
     "android": {
