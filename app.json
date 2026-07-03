@@ -13,7 +13,8 @@
         "NSLocationWhenInUseUsageDescription": "Lore uses your location to show questions near you. You can also use the app without sharing your location.",
         "NSLocationAlwaysUsageDescription": "Lore uses your location to notify you about new questions nearby.",
         "NSPhotoLibraryUsageDescription": "Lore accesses a single photo you choose from your library so you can set it as your profile avatar.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleAllowMixedLocalizations": true
       },
       "buildNumber": "5",
       "bundleIdentifier": "com.yagizergilvokario.lore"
@@ -44,7 +45,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Lore, çevrendeki soruları göstermek için konumunu kullanır."
+          "locationWhenInUsePermission": "Lore uses your location to show questions near you. You can also use the app without sharing your location."
         }
       ],
       [
@@ -58,6 +59,10 @@
       "expo-asset",
       "expo-localization"
     ],
+    "locales": {
+      "en": "./locales/en.json",
+      "tr": "./locales/tr.json"
+    },
     "extra": {
       "eas": {
         "projectId": "a2bfe8c9-6074-4bf9-9c0e-1b9ddc65c13a"

@@ -218,9 +218,12 @@ export default function PaywallScreen() {
   // Her plan kartı kendi deneme süresini göstersin (yıllık 7g / aylık 3g).
   const yearlyTrialDays  = introTrialDays(annualPkg);
   const monthlyTrialDays = introTrialDays(monthlyPkg);
+  // Apple 3.1.2(c): the billed amount must be the most prominent price on the
+  // card. The calculated per-month equivalent is informational only, so it
+  // stays in this subordinate subtitle line — never in the large price slot.
   const yearlySub = yearlyTrialDays > 0
     ? t('paywall.trialBadge', { days: yearlyTrialDays })
-    : yearlyPriceStr + t('paywall.yearlyPer');
+    : t('paywall.perMonthEquivalent', { price: yearlyPerMoStr });
   const monthlySub = monthlyTrialDays > 0
     ? t('paywall.trialBadge', { days: monthlyTrialDays })
     : t('paywall.cancelNote');
@@ -335,7 +338,7 @@ export default function PaywallScreen() {
           <PlanCard
             active={plan === 'yearly'}
             label={t('paywall.yearly')}
-            price={yearlyPerMoStr + t('paywall.monthlyPer')}
+            price={yearlyPriceStr + t('paywall.yearlyPer')}
             sub={yearlySub}
             badge={t('paywall.yearlyBadge')}
             onPress={() => setPlan('yearly')}

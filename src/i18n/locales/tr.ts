@@ -284,7 +284,7 @@ const tr = {
     monthlyPer:     '/ay',
     yearlyPrice:    '₺599,99',
     yearlyPer:      '/yıl',
-    yearlySub:      '≈ ₺50/ay · %50 tasarruf',
+    perMonthEquivalent: '≈ {{price}}/ay, yıllık faturalandırılır',
     bestValue:      'En İyi Değer',
     cancelNote:     'İstediğin zaman iptal et',
     trialNote:      '7 gün ücretsiz dene',

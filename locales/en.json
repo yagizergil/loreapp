@@ -1,0 +1,7 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "Lore uses your location to show questions near you. You can also use the app without sharing your location.",
+    "NSLocationAlwaysUsageDescription": "Lore uses your location to notify you about new questions nearby.",
+    "NSPhotoLibraryUsageDescription": "Lore accesses a single photo you choose from your library so you can set it as your profile avatar."
+  }
+}

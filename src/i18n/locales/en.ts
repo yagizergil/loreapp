@@ -284,7 +284,7 @@ const en = {
     monthlyPer:     '/mo',
     yearlyPrice:    '₺599.99',
     yearlyPer:      '/yr',
-    yearlySub:      '≈ ₺50/mo · 50% off',
+    perMonthEquivalent: '≈ {{price}}/mo, billed yearly',
     bestValue:      'Best Value',
     cancelNote:     'Cancel anytime',
     trialNote:      'Try free for 7 days',

@@ -1,0 +1,7 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "Lore, çevrendeki soruları gösterebilmek için konumunu kullanır. Konumunu paylaşmadan da uygulamayı kullanabilirsin.",
+    "NSLocationAlwaysUsageDescription": "Lore, yakınındaki yeni sorular hakkında seni bilgilendirmek için konumunu kullanır.",
+    "NSPhotoLibraryUsageDescription": "Lore, profil fotoğrafın olarak ayarlaman için kütüphaneden seçtiğin tek bir fotoğrafa erişir."
+  }
+}
