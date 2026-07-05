@@ -13,6 +13,7 @@ import { usePremium } from '../../lib/PremiumContext';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import Avatar from '../../components/ui/Avatar';
 import LeaderboardSheet from '../../components/sheet/LeaderboardSheet';
+import { getKarmaTier } from '../../lib/karma';
 import {
   IconMessages, IconSignOut, IconTrash,
 } from '../../components/ui/Icons';
@@ -150,7 +151,7 @@ export default function ProfileScreen() {
 
   const { t, i18n: i18nHook } = useTranslation();
   const { isPremium } = usePremium();
-  const [stats, setStats]     = useState<{ questions: number; answers: number; streak: number } | null>(null);
+  const [stats, setStats]     = useState<{ questions: number; answers: number; streak: number; karma: number } | null>(null);
   const [notifOn, setNotifOn] = useState(true);
   const [busySignOut, setBusySignOut]   = useState(false);
   const [busyDelete, setBusyDelete]     = useState(false);
@@ -189,7 +190,7 @@ export default function ProfileScreen() {
   useFocusEffect(useCallback(() => {
     fetchUserStats(profile.id)
       .then(setStats)
-      .catch(() => setStats({ questions: 0, answers: 0, streak: 0 }));
+      .catch(() => setStats({ questions: 0, answers: 0, streak: 0, karma: 0 }));
   }, [profile.id]));
 
   // ── Sign out ─────────────────────────────────────────────────────────────
@@ -294,7 +295,16 @@ export default function ProfileScreen() {
             ring
           />
           <View style={s.avatarMeta}>
-            <Text style={s.nickname}>{profile.nickname}</Text>
+            <View style={s.nicknameRow}>
+              <Text style={s.nickname}>{profile.nickname}</Text>
+              {isPremium && stats && (
+                <View style={[s.karmaTierBadge, { borderColor: getKarmaTier(stats.karma).color + '66', backgroundColor: getKarmaTier(stats.karma).color + '22' }]}>
+                  <Text style={[s.karmaTierText, { color: getKarmaTier(stats.karma).color }]}>
+                    {t(getKarmaTier(stats.karma).label)}
+                  </Text>
+                </View>
+              )}
+            </View>
             <View style={s.anonBadge}>
               <View style={[s.anonDot, {
                 backgroundColor: profile.isAnonymous === false ? palette.accent : palette.success,
@@ -327,6 +337,13 @@ export default function ProfileScreen() {
               ? <ActivityIndicator color={palette.ink40} size="small" />
               : <Text style={s.statValue}>{stats.streak}</Text>}
             <Text style={s.statLabel}>{t('profile.statStreak')}</Text>
+          </View>
+          <View style={s.statSep} />
+          <View style={s.statItem}>
+            {stats === null
+              ? <ActivityIndicator color={palette.ink40} size="small" />
+              : <Text style={s.statValue}>{stats.karma}</Text>}
+            <Text style={s.statLabel}>{t('profile.statKarma')}</Text>
           </View>
         </View>
 
@@ -588,10 +605,22 @@ const s = StyleSheet.create({
     ...shadow.sm,
   },
   avatarMeta: { flex: 1, gap: 6 },
+  nicknameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   nickname: {
     fontFamily: fontFamily.display,
     fontSize: fontSize.lg,
     color: palette.ink00,
+  },
+  karmaTierBadge: {
+    borderWidth: 1,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  karmaTierText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 0.3,
   },
   anonBadge: {
     flexDirection: 'row',

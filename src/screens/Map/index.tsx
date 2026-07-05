@@ -38,6 +38,7 @@ import { SealMark, TYPE_SHADE } from '../../components/map/SealMark';
 import { IconBell, IconLocateMe } from '../../components/ui/Icons';
 import QuestionSheet from '../../components/sheet/QuestionSheet';
 import AskQuestionModal from '../../components/sheet/AskQuestionModal';
+import LeaderboardSheet from '../../components/sheet/LeaderboardSheet';
 import { useTranslation } from 'react-i18next';
 
 
@@ -71,6 +72,7 @@ export default function MapScreen() {
   const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const { isPremium } = usePremium();
 
   // Render merkezi: görünen pin seti bu noktaya en yakın olanlardan seçilir.
@@ -430,22 +432,41 @@ export default function MapScreen() {
       <View style={styles.topBarWrapper}>
         <BlurView intensity={60} tint="dark" style={styles.topBar}>
           <Text style={styles.appName}>lore</Text>
-          <TouchableOpacity
-            style={styles.bellButton}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('Notifications')}
-          >
-            <IconBell color={palette.ink10} size={20} strokeWidth={2} />
-            {notifCount > 0 && (
-              <View style={styles.bellBadge}>
-                <Text style={styles.bellBadgeText}>
-                  {notifCount > 9 ? '9+' : String(notifCount)}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <View style={styles.topBarActions}>
+            <TouchableOpacity
+              style={styles.leaderboardButton}
+              activeOpacity={0.8}
+              onPress={() => setShowLeaderboard(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('leaderboard.title')}
+            >
+              <Text style={styles.leaderboardEmoji}>🏆</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.bellButton}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <IconBell color={palette.ink10} size={20} strokeWidth={2} />
+              {notifCount > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>
+                    {notifCount > 9 ? '9+' : String(notifCount)}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </BlurView>
       </View>
+
+      {showLeaderboard && (
+        <LeaderboardSheet
+          profileId={profile.id}
+          isPremium={isPremium}
+          onClose={() => setShowLeaderboard(false)}
+        />
+      )}
 
       {/* Filter pills */}
       <View style={[styles.filterBar, { top: (Platform.OS === 'ios' ? 50 : 28) + 68 }]}>
@@ -573,6 +594,22 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xl,
     color: palette.accent,
   },
+  topBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  leaderboardButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    backgroundColor: palette.ink80 + 'CC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: palette.ink60,
+  },
+  leaderboardEmoji: { fontSize: 17 },
   bellButton: {
     width: 40,
     height: 40,

@@ -63,6 +63,14 @@ const en = {
     open:   'Open',
   },
 
+  // ─── Karma tiers (premium-only status badge next to nickname) ──────────────
+  karma: {
+    tierNewcomer: 'Newcomer',
+    tierRegular:  'Regular',
+    tierTrusted:  'Trusted Voice',
+    tierTopVoice: 'Top Voice',
+  },
+
   // ─── Leaderboard ────────────────────────────────────────────────────────────
   leaderboard: {
     title:        'Leaderboard',
@@ -177,6 +185,7 @@ const en = {
     statQuestions:   'Questions',
     statAnswers:     'Answers',
     statStreak:      'Day streak',
+    statKarma:       'Karma',
     gender: {
       male:   'Male',
       female: 'Female',

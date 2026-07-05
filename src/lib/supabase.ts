@@ -502,16 +502,21 @@ export async function postQuestion(
   return data as Question;
 }
 
-export async function fetchUserStats(userId: string): Promise<{ questions: number; answers: number; streak: number }> {
+export async function fetchUserStats(
+  userId: string,
+): Promise<{ questions: number; answers: number; streak: number; karma: number }> {
   const [qRes, aRes] = await Promise.all([
     supabase.from('questions').select('id', { count: 'exact', head: true }).eq('author_id', userId),
-    supabase.from('answers').select('created_at', { count: 'exact' }).eq('author_id', userId).order('created_at', { ascending: false }),
+    supabase.from('answers').select('created_at, upvotes', { count: 'exact' }).eq('author_id', userId).order('created_at', { ascending: false }),
   ]);
-  const timestamps = (aRes.data ?? []).map((row: { created_at: string }) => row.created_at);
+  const rows = (aRes.data ?? []) as { created_at: string; upvotes: number | null }[];
+  const timestamps = rows.map((row) => row.created_at);
+  const karma = rows.reduce((sum, row) => sum + (row.upvotes ?? 0), 0);
   return {
     questions: qRes.count ?? 0,
     answers: aRes.count ?? 0,
     streak: computeAnswerStreak(timestamps),
+    karma,
   };
 }
 

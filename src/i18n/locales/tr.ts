@@ -63,6 +63,14 @@ const tr = {
     open:   'Açık',
   },
 
+  // ─── Karma tiers (premium-only status badge next to nickname) ──────────────
+  karma: {
+    tierNewcomer: 'Yeni Üye',
+    tierRegular:  'Aktif Üye',
+    tierTrusted:  'Güvenilir Ses',
+    tierTopVoice: 'Mahallenin Sesi',
+  },
+
   // ─── Leaderboard ────────────────────────────────────────────────────────────
   leaderboard: {
     title:        'Liderlik Tablosu',
@@ -177,6 +185,7 @@ const tr = {
     statQuestions:   'Soru',
     statAnswers:     'Cevap',
     statStreak:      'Gün serisi',
+    statKarma:       'İtibar',
     gender: {
       male:   'Erkek',
       female: 'Kadın',
