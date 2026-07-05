@@ -112,6 +112,24 @@ export default function MapScreen() {
     clusterDebounceRef.current = setTimeout(() => setRegion(r), 250);
   }, []);
 
+  // Every *programmatic* camera move (initial GPS fix, "go to my location",
+  // random question, cluster zoom-in) must update `region` state immediately,
+  // not just call the native animateToRegion. onRegionChangeComplete is not
+  // guaranteed to fire reliably for programmatic moves on every platform, so
+  // relying on it alone left `region` stuck at the hardcoded ISTANBUL default
+  // until the user made their own gesture — meaning the clustering hook
+  // clustered real, already-loaded questions against the wrong bounding box
+  // and showed nothing until a manual pinch/zoom finally updated `region`.
+  const moveMapTo = useCallback((r: Region, duration = 500) => {
+    if (regionDebounceRef.current) clearTimeout(regionDebounceRef.current);
+    if (clusterDebounceRef.current) clearTimeout(clusterDebounceRef.current);
+    mapRef.current?.animateToRegion(r, duration);
+    const nextZoom = Math.round(Math.log2(360 / r.latitudeDelta));
+    zoomRef.current = nextZoom;
+    setZoom(nextZoom);
+    setRegion(r);
+  }, []);
+
   const isLocked = useCallback((q: Question) => {
     if (isPremium || !userLocation) return false;
     return distanceKm(userLocation.lat, userLocation.lng, q.lat, q.lng) > FREE_RADIUS_KM;
@@ -237,7 +255,7 @@ export default function MapScreen() {
             }
           }
         } catch { /* ignore */ }
-        mapRef.current?.animateToRegion(region, 600);
+        moveMapTo(region, 600);
         await loadQuestions(region.latitude, region.longitude);
         return;
       }
@@ -251,7 +269,7 @@ export default function MapScreen() {
         const lat = last.coords.latitude;
         const lng = last.coords.longitude;
         setUserLocation({ lat, lng });
-        mapRef.current?.animateToRegion(
+        moveMapTo(
           { latitude: lat, longitude: lng, latitudeDelta: CIRCLE_DELTA, longitudeDelta: CIRCLE_DELTA },
           600
         );
@@ -268,7 +286,7 @@ export default function MapScreen() {
       // Remember this region as the fallback for sessions where the user later
       // turns Location Services off.
       AsyncStorage.setItem(LAST_REGION_KEY, JSON.stringify({ latitude: lat, longitude: lng })).catch(() => {});
-      mapRef.current?.animateToRegion(
+      moveMapTo(
         { latitude: lat, longitude: lng, latitudeDelta: CIRCLE_DELTA, longitudeDelta: CIRCLE_DELTA },
         last ? 400 : 800
       );
@@ -311,7 +329,7 @@ export default function MapScreen() {
   const handleClusterPress = useCallback((cluster: ClusterItem) => {
     if (cluster.expansionZoom > zoomRef.current) {
       const targetDelta = 360 / Math.pow(2, cluster.expansionZoom);
-      mapRef.current?.animateToRegion({
+      moveMapTo({
         latitude: cluster.lat,
         longitude: cluster.lng,
         latitudeDelta: targetDelta,
@@ -320,7 +338,7 @@ export default function MapScreen() {
     } else {
       setClusterQuestions(cluster.questions);
     }
-  }, []);
+  }, [moveMapTo]);
 
   const [mapRefreshKey, setMapRefreshKey] = useState(0);
 
@@ -352,15 +370,15 @@ export default function MapScreen() {
     if (!pool.length) return;
     const q = pool[Math.floor(Math.random() * pool.length)];
     setSelectedQuestion(q);
-    mapRef.current?.animateToRegion(
+    moveMapTo(
       { latitude: q.lat, longitude: q.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 },
       500
     );
-  }, [questions, isLocked, answeredIds, profile.id]);
+  }, [questions, isLocked, answeredIds, profile.id, moveMapTo]);
 
   const handleGoToMyLocation = useCallback(async () => {
     if (userLocation) {
-      mapRef.current?.animateToRegion(
+      moveMapTo(
         { latitude: userLocation.lat, longitude: userLocation.lng, latitudeDelta: 0.02, longitudeDelta: 0.02 },
         500
       );
@@ -372,13 +390,13 @@ export default function MapScreen() {
       const lat = loc.coords.latitude;
       const lng = loc.coords.longitude;
       setUserLocation({ lat, lng });
-      mapRef.current?.animateToRegion(
+      moveMapTo(
         { latitude: lat, longitude: lng, latitudeDelta: 0.02, longitudeDelta: 0.02 },
         500
       );
       await loadQuestions(lat, lng);
     }
-  }, [userLocation]);
+  }, [userLocation, moveMapTo]);
 
   return (
     <View style={styles.root}>
@@ -451,9 +469,18 @@ export default function MapScreen() {
           // clustering only groups by on-screen proximity, not lock status,
           // so a single unlocked question in the group still reads as
           // reachable rather than falsely showing a locked pin.
+          // Supercluster's cluster_id is an internal KD-tree index — it gets
+          // reassigned on every recompute even for a visually-identical
+          // cluster, which previously keyed the Marker and forced a full
+          // unmount/remount (re-triggering tracksViewChanges) on every
+          // debounced region tick during a zoom gesture. Keying on rounded
+          // position + count instead keeps identity stable across recomputes
+          // unless the cluster's actual composition changes, eliminating the
+          // marker-churn burst that's a known react-native-maps crash trigger.
+          const clusterKey = `cluster-${item.lat.toFixed(4)}-${item.lng.toFixed(4)}-${item.count}`;
           return (
             <QuestionPin
-              key={`cluster-${item.id}`}
+              key={clusterKey}
               question={item.topQuestion}
               zoom={zoom}
               locked={item.questions.every(isLocked)}

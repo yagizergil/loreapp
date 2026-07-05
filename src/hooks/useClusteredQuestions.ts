@@ -104,5 +104,5 @@ export default function useClusteredQuestions(
         question: qMap.get(props.questionId)!,
       };
     });
-  }, [questions, region.latitude, region.longitude, region.latitudeDelta]);
+  }, [questions, region.latitude, region.longitude, region.latitudeDelta, region.longitudeDelta]);
 }
