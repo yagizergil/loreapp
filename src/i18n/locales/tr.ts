@@ -7,6 +7,7 @@ const tr = {
     retry:    'Tekrar Dene',
     loading:  'Yükleniyor…',
     error:    'Hata',
+    close:    'Kapat',
     or:       'veya',
     next:     'İleri →',
     back:     'Geri',
@@ -60,6 +61,16 @@ const tr = {
     vote:   'Oylama',
     choice: 'Seçenekli',
     open:   'Açık',
+  },
+
+  // ─── Leaderboard ────────────────────────────────────────────────────────────
+  leaderboard: {
+    title:        'Liderlik Tablosu',
+    subtitle:     'Bu hafta çevrende en çok katkı sağlayanlar',
+    empty:        'Çevrende liderlik tablosu gösterecek kadar aktivite henüz yok.',
+    answersCount: '{{n}} cevap',
+    unlockCta:    'Tam liderlik tablosunu aç',
+    yourRank:     'Sıran: #{{rank}}',
   },
 
   // ─── Map screen ───────────────────────────────────────────────────────────────
@@ -308,12 +319,14 @@ const tr = {
       region: { title: 'Başka Şehirleri\nKeşfet',    subtitle: 'Diğer şehirlerdeki soruları görmek için Premium gerekli.' },
       limit:  { title: 'Sınırı Kaldır,\nDevam Et',   subtitle: 'Bugünkü ücretsiz cevap hakkın bitti.' },
       welcome:{ title: 'Lore\'dan En İyi\nŞekilde Yararlan', subtitle: 'Tüm haritayı, sınırsız cevabı ve fazlasını aç — ücretsiz başla.' },
+      leaderboard: { title: 'Sıralamanı\nGör', subtitle: 'Şehrinin tam liderlik tablosunu aç.' },
     },
     scarcity:       'Çevrende {{count}} soru kilitli — hepsini aç.',
     savings:        'Yıllıkla yılda {{amount}} tasarruf et (%{{pct}} indirim)',
     benefitsGeo:    ['Tüm şehirdeki soruları gör', '1 km mesafe sınırı kalkar', 'Sınırsız günlük cevap hakkı'],
     benefitsRegion: ['Her şehirdeki soruları gör', '1 km mesafe sınırı kalkar', 'Sınırsız günlük cevap hakkı'],
     benefitsLimit:  ['Sınırsız günlük cevap hakkı', 'Tüm şehirdeki soruları gör', '1 km mesafe sınırı kalkar'],
+    benefitsLeaderboard: ['Tam şehir liderlik tablosu', 'Tam sıralamanı gör', 'Sınırsız günlük cevap hakkı'],
     yearlyBadge:    'EN İYİ · %50 TASARRUF',
     insteadOf:      '{{price}} yerine',
     trialNoteYearly:  'Deneme sonrası {{price}}/yıl · İptal edilebilir',

@@ -7,6 +7,7 @@ const en = {
     retry:    'Try Again',
     loading:  'Loading…',
     error:    'Error',
+    close:    'Close',
     or:       'or',
     next:     'Next →',
     back:     'Back',
@@ -60,6 +61,16 @@ const en = {
     vote:   'Poll',
     choice: 'Choice',
     open:   'Open',
+  },
+
+  // ─── Leaderboard ────────────────────────────────────────────────────────────
+  leaderboard: {
+    title:        'Leaderboard',
+    subtitle:     'Top contributors near you this week',
+    empty:        "We don't have enough activity near you yet to show a leaderboard.",
+    answersCount: '{{n}} answers',
+    unlockCta:    'Unlock full leaderboard',
+    yourRank:     "You're #{{rank}}",
   },
 
   // ─── Map screen ───────────────────────────────────────────────────────────────
@@ -308,12 +319,14 @@ const en = {
       region: { title: 'Explore Other\nCities',     subtitle: 'Premium is required to see questions in other cities.' },
       limit:  { title: 'Lift the Limit,\nKeep Going', subtitle: "You've used today's free answers." },
       welcome:{ title: 'Get the Most\nout of Lore', subtitle: 'Unlock the whole map, unlimited answers and more — start free.' },
+      leaderboard: { title: 'See Where\nYou Rank', subtitle: 'Unlock the full leaderboard for your city.' },
     },
     scarcity:       '{{count}} questions near you are locked — unlock them all.',
     savings:        'Save {{amount}} a year ({{pct}}% off) with yearly',
     benefitsGeo:    ['See every question in the city', 'No more 1 km distance limit', 'Unlimited daily answers'],
     benefitsRegion: ['See questions in every city', 'No more 1 km distance limit', 'Unlimited daily answers'],
     benefitsLimit:  ['Unlimited daily answers', 'See every question in the city', 'No more 1 km distance limit'],
+    benefitsLeaderboard: ['Full city leaderboard', 'See your exact rank', 'Unlimited daily answers'],
     yearlyBadge:    'BEST · 50% OFF',
     insteadOf:      'instead of {{price}}',
     trialNoteYearly:  'Then {{price}}/yr · Cancel anytime',

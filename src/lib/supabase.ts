@@ -122,6 +122,42 @@ export async function fetchRegionQuestionCount(lat: number, lng: number, radiusM
   return (data as number) ?? 0;
 }
 
+export interface LeaderboardEntry {
+  profile_id: string;
+  nickname: string;
+  avatar: string;
+  avatar_url: string | null;
+  answer_count: number;
+  rank: number;
+}
+
+/** Top contributors (by answers given, last 7 days by default) near a point.
+ *  The row count is clamped server-side by `isPremium` (see leaderboard.sql)
+ *  so free callers never receive more rows than they're shown. */
+export async function fetchCityLeaderboard(
+  lat: number, lng: number, isPremium: boolean, radiusM = 50000, days = 7, limit = 50,
+): Promise<LeaderboardEntry[]> {
+  const { data, error } = await supabase.rpc('city_leaderboard', {
+    p_lat: lat, p_lng: lng, p_radius_m: radiusM, p_days: days, p_limit: limit, p_is_premium: isPremium,
+  });
+  if (error) return [];
+  return (data as LeaderboardEntry[]) ?? [];
+}
+
+/** A single profile's rank in the same leaderboard population, even when they
+ *  fall outside the top N — lets free users see "you're #47" without fetching
+ *  the full list. */
+export async function fetchMyLeaderboardRank(
+  profileId: string, lat: number, lng: number, radiusM = 50000, days = 7,
+): Promise<{ rank: number; answerCount: number } | null> {
+  const { data, error } = await supabase.rpc('my_leaderboard_rank', {
+    p_profile_id: profileId, p_lat: lat, p_lng: lng, p_radius_m: radiusM, p_days: days,
+  });
+  if (error || !data?.length) return null;
+  const row = data[0] as { rank: number; answer_count: number };
+  return { rank: row.rank, answerCount: row.answer_count };
+}
+
 /** Persist the user's last known location so we can push nearby new questions. */
 export async function saveUserLocation(profileId: string, lat: number, lng: number): Promise<void> {
   await supabase.rpc('update_user_location', { p_id: profileId, p_lat: lat, p_lng: lng });

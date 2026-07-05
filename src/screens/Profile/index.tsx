@@ -9,8 +9,10 @@ import { useProfile } from '../../lib/ProfileContext';
 import { clearLocalProfile } from '../../lib/storage';
 import { fetchUserStats, signOut, deleteAccount, fetchBlockedProfiles, unblockUser, Profile } from '../../lib/supabase';
 import { authEvents } from '../../lib/authEvents';
+import { usePremium } from '../../lib/PremiumContext';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import Avatar from '../../components/ui/Avatar';
+import LeaderboardSheet from '../../components/sheet/LeaderboardSheet';
 import {
   IconMessages, IconSignOut, IconTrash,
 } from '../../components/ui/Icons';
@@ -147,12 +149,14 @@ export default function ProfileScreen() {
   const insets     = useSafeAreaInsets();
 
   const { t, i18n: i18nHook } = useTranslation();
+  const { isPremium } = usePremium();
   const [stats, setStats]     = useState<{ questions: number; answers: number; streak: number } | null>(null);
   const [notifOn, setNotifOn] = useState(true);
   const [busySignOut, setBusySignOut]   = useState(false);
   const [busyDelete, setBusyDelete]     = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [showBlocked, setShowBlocked] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [blocked, setBlocked] = useState<Profile[]>([]);
   const [loadingBlocked, setLoadingBlocked] = useState(false);
 
@@ -339,7 +343,21 @@ export default function ProfileScreen() {
             label={t('profile.rows.myMessages')}
             onPress={() => navigation.navigate('Conversations')}
           />
+          <Divider />
+          <SettingRow
+            icon={<Text style={{ fontSize: 15 }}>🏆</Text>}
+            label={t('leaderboard.title')}
+            onPress={() => setShowLeaderboard(true)}
+          />
         </Section>
+
+        {showLeaderboard && (
+          <LeaderboardSheet
+            profileId={profile.id}
+            isPremium={isPremium}
+            onClose={() => setShowLeaderboard(false)}
+          />
+        )}
 
         {/* ── Tercihler ── */}
         <Section title={t('profile.sections.prefs')}>

@@ -102,10 +102,11 @@ export default function PaywallScreen() {
   const { t }      = useTranslation();
   const trigger    = (route.params as any)?.trigger ?? 'geo';
   const count      = (route.params as any)?.count ?? 0;
-  const variant: 'geo' | 'region' | 'limit' | 'welcome' =
+  const variant: 'geo' | 'region' | 'limit' | 'welcome' | 'leaderboard' =
     trigger === 'region' ? 'region'
     : trigger === 'limit' ? 'limit'
     : trigger === 'welcome' ? 'welcome'
+    : trigger === 'leaderboard' ? 'leaderboard'
     : 'geo';
 
   const { isPremium, offering, purchase, restore } = usePremium();
@@ -216,7 +217,9 @@ export default function PaywallScreen() {
 
   const benefitsKey = variant === 'region'
     ? 'paywall.benefitsRegion'
-    : variant === 'limit' ? 'paywall.benefitsLimit' : 'paywall.benefitsGeo';
+    : variant === 'limit' ? 'paywall.benefitsLimit'
+    : variant === 'leaderboard' ? 'paywall.benefitsLeaderboard'
+    : 'paywall.benefitsGeo';
   const benefits = t(benefitsKey, { returnObjects: true }) as string[];
 
   // Gerçek ürünün ücretsiz deneme süresini RevenueCat introPrice'ından türet

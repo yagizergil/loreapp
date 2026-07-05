@@ -1,4 +1,4 @@
-export type PaywallTrigger = 'geo' | 'limit' | 'region' | 'welcome';
+export type PaywallTrigger = 'geo' | 'limit' | 'region' | 'welcome' | 'leaderboard';
 
 export interface PaywallOpts {
   /** Number of locked / nearby questions, used for scarcity copy. */

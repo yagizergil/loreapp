@@ -30,7 +30,9 @@ export type AnalyticsEvent =
   | 'empty_map_shown'
   | 'empty_map_ask_tapped'
   | 'review_prompt_shown'
-  | 'share_result';
+  | 'share_result'
+  | 'leaderboard_viewed'
+  | 'leaderboard_unlock_tapped';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;
 
