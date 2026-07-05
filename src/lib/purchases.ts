@@ -59,13 +59,17 @@ export function isPremiumFromInfo(info: CustomerInfo | null): boolean {
   return false;
 }
 
+/**
+ * Returns `null` only when the SDK isn't configured (non-iOS, missing key) —
+ * a legitimate "no purchases possible here" state. A transient fetch failure
+ * (network blip, RC outage) THROWS instead of returning null, so callers can
+ * tell "confirmed not premium" apart from "unknown, don't touch the current
+ * state" (see PremiumContext — treating a fetch error as "not premium" would
+ * silently downgrade a paying subscriber and persist that wrong state).
+ */
 export async function getCustomerInfo(): Promise<CustomerInfo | null> {
   if (!configured) return null;
-  try {
-    return await Purchases.getCustomerInfo();
-  } catch {
-    return null;
-  }
+  return await Purchases.getCustomerInfo();
 }
 
 export async function getCurrentOffering(): Promise<PurchasesOffering | null> {

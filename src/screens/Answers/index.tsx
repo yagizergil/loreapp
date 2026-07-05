@@ -566,7 +566,13 @@ export default function AnswersScreen() {
       setMyChoice(choice);
       setAnswered(true);
       track('answer_submitted', { type: question.type });
-    } catch {}
+    } catch (e: any) {
+      if (e?.code === '23505') {
+        setAnswered(true); // already answered (duplicate) — not a real failure
+      } else {
+        Alert.alert(t('common.error'), t('sheet.submitError'));
+      }
+    }
     finally { setSubmitting(false); }
   }
 
@@ -591,7 +597,15 @@ export default function AnswersScreen() {
       setAnswered(true);
       track('answer_submitted', { type: question.type });
     } catch (e: any) {
-      if (e?.code === '23505') setAnswered(true); // already answered (duplicate)
+      if (e?.code === '23505') {
+        // Already answered — fetch fresh so `answers` actually reflects the
+        // persisted answer instead of just flipping the local flag.
+        const fresh = await fetchAnswers(question.id).catch(() => []);
+        if (fresh.length) setAnswers(fresh);
+        setAnswered(true);
+      } else {
+        Alert.alert(t('common.error'), t('sheet.submitError'));
+      }
     }
     finally { setSubmitting(false); }
   }

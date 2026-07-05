@@ -91,6 +91,7 @@ const tr = {
     leading:            'önde',
     totalVotesLine:     '{{total}} oy · Seçimin: {{choice}}',
     submitAnswer:       'Gönder',
+    submitError:        'Cevabın gönderilemedi. Bağlantını kontrol edip tekrar dene.',
     answerSaved:        'Cevabın kaydedildi',
     openPlaceholder:    'Cevabını yaz…',
     report:             'Şikayet et',

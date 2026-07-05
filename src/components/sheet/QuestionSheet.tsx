@@ -166,6 +166,10 @@ export default function QuestionSheet({
         }
         setLocalAnswered(true);
         onAnswered(question.id);
+      } else {
+        // Any other failure (network, RLS, server error): tell the user instead
+        // of silently reverting to the pre-vote state as if nothing happened.
+        Alert.alert(t('common.error'), t('sheet.submitError'));
       }
     } finally { setSubmitting(false); }
   }
@@ -188,7 +192,12 @@ export default function QuestionSheet({
       maybeRequestReviewAfterAnswer(track);
       onAnswered(question.id);
     } catch (e: any) {
-      if (e?.code === '23505') { setLocalAnswered(true); onAnswered(question.id); }
+      if (e?.code === '23505') {
+        setLocalAnswered(true);
+        onAnswered(question.id);
+      } else {
+        Alert.alert(t('common.error'), t('sheet.submitError'));
+      }
     } finally { setSubmitting(false); }
   }
 

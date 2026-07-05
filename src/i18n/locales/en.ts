@@ -91,6 +91,7 @@ const en = {
     leading:            'leading',
     totalVotesLine:     '{{total}} votes · Your pick: {{choice}}',
     submitAnswer:       'Submit',
+    submitError:        "Couldn't submit your answer. Please check your connection and try again.",
     answerSaved:        'Answer saved',
     openPlaceholder:    'Write your answer…',
     report:             'Report',

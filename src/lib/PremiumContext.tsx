@@ -75,11 +75,16 @@ export function PremiumProvider({
         return;
       }
 
-      const info = await getCustomerInfo();
-      if (alive) {
-        mirror(isPremiumFromInfo(info));
-        setReady(true);
+      try {
+        const info = await getCustomerInfo();
+        if (alive) mirror(isPremiumFromInfo(info));
+      } catch {
+        // RevenueCat fetch failed (network blip, RC outage) — this is NOT the
+        // same as "confirmed not premium". Leave the DB-optimistic seed (step 1)
+        // standing rather than mirroring `false` and persisting a wrong
+        // downgrade for a paying subscriber.
       }
+      if (alive) setReady(true);
 
       getCurrentOffering().then((o) => { if (alive) setOffering(o); });
     })();
