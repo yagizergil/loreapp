@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   FlatList, Modal, Pressable, Dimensions, ActivityIndicator,
@@ -26,6 +26,21 @@ interface Props {
   isPremium: boolean;
   onClose: () => void;
 }
+
+// Free callers only ever receive up to FREE_VISIBLE_ROWS rows — clamped
+// server-side in city_leaderboard, not just hidden here — so there's no
+// "locked" row data to render past this point.
+const LeaderboardRow = React.memo(function LeaderboardRow({ item, isMe }: { item: LeaderboardEntry; isMe: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <View style={[styles.row, isMe && styles.rowMine]}>
+      <Text style={styles.rank}>{item.rank}</Text>
+      <Avatar avatarKey={item.avatar} avatarUrl={item.avatar_url} size={32} ring={false} />
+      <Text style={styles.name} numberOfLines={1}>{item.nickname}</Text>
+      <Text style={styles.count}>{t('leaderboard.answersCount', { n: item.answer_count })}</Text>
+    </View>
+  );
+});
 
 export default function LeaderboardSheet({ profileId, isPremium, onClose }: Props) {
   const { t } = useTranslation();
@@ -69,6 +84,10 @@ export default function LeaderboardSheet({ profileId, isPremium, onClose }: Prop
   const myOwnRow = entries.find((e) => e.profile_id === profileId);
   const showMyRankFooter = !isPremium && myRank && (!myOwnRow || myRank.rank > FREE_VISIBLE_ROWS);
 
+  const renderItem = useCallback(({ item }: { item: LeaderboardEntry }) => (
+    <LeaderboardRow item={item} isMe={item.profile_id === profileId} />
+  ), [profileId]);
+
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
@@ -99,20 +118,7 @@ export default function LeaderboardSheet({ profileId, isPremium, onClose }: Prop
               contentContainerStyle={styles.list}
               style={{ maxHeight: SCREEN_HEIGHT * 0.45 }}
               ItemSeparatorComponent={() => <View style={styles.sep} />}
-              renderItem={({ item }) => {
-                // Free callers only ever receive up to FREE_VISIBLE_ROWS rows —
-                // clamped server-side in city_leaderboard, not just hidden here
-                // — so there's no "locked" row data to render past this point.
-                const isMe = item.profile_id === profileId;
-                return (
-                  <View style={[styles.row, isMe && styles.rowMine]}>
-                    <Text style={styles.rank}>{item.rank}</Text>
-                    <Avatar avatarKey={item.avatar} avatarUrl={item.avatar_url} size={32} ring={false} />
-                    <Text style={styles.name} numberOfLines={1}>{item.nickname}</Text>
-                    <Text style={styles.count}>{t('leaderboard.answersCount', { n: item.answer_count })}</Text>
-                  </View>
-                );
-              }}
+              renderItem={renderItem}
               ListFooterComponent={
                 !isPremium ? (
                   <TouchableOpacity

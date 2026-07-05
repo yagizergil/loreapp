@@ -121,12 +121,16 @@ export default function MapScreen() {
 
   // Cevaplanan sorular haritadan KALKAR (akışta/Timeline'da takip edilir).
   // Kendi sorduğun sorular haritada kalır ve sarı mühürle gösterilir.
-  const filteredQuestions = (filter === 'all'
+  // Memoized: this was previously recomputed on every render (including
+  // unrelated ones like toggling the leaderboard sheet), which also broke
+  // the memoization chain feeding spreadOffsets/visibleQuestions below.
+  const filteredQuestions = useMemo(() => (filter === 'all'
     ? questions
     : questions.filter((q) => getQuestionBadge(q) === filter)
   )
     .filter((q) => !blockedIds.has(q.author_id))
-    .filter((q) => q.author_id === profile.id || !answeredIds.has(q.id));
+    .filter((q) => q.author_id === profile.id || !answeredIds.has(q.id)),
+  [questions, filter, blockedIds, answeredIds, profile.id]);
 
   // Compute stable spread offsets for same-coordinate pins (computed once per questions array,
   // not per zoom/region change — so pins never jump or move).
@@ -329,9 +333,9 @@ export default function MapScreen() {
     }
   }, [userLocation]);
 
-  const availableQuestions = filteredQuestions.filter(
+  const availableQuestions = useMemo(() => filteredQuestions.filter(
     (q) => !isLocked(q) && q.author_id !== profile.id && !answeredIds.has(q.id)
-  );
+  ), [filteredQuestions, isLocked, profile.id, answeredIds]);
 
   const handleRandomQuestion = useCallback(() => {
     const pool = questions.filter(

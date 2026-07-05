@@ -34,6 +34,7 @@ import { moderationMenu, reportAnswerFlow } from '../../lib/moderation';
 import { containsObjectionableContent } from '../../lib/contentFilter';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import AvatarView from '../../components/ui/Avatar';
+import { SkeletonList } from '../../components/ui/SkeletonRow';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
@@ -221,7 +222,7 @@ const op = StyleSheet.create({
 
 // ─── Answer card (open type) ──────────────────────────────────────────────────
 
-function AnswerCard({
+const AnswerCard = React.memo(function AnswerCard({
   answer, author, isOwn, upvoted, onUpvote, onMessage, onModerate, onDelete,
 }: {
   answer:    Answer;
@@ -311,7 +312,7 @@ function AnswerCard({
       </View>
     </View>
   );
-}
+});
 
 const ac = StyleSheet.create({
   root: {
@@ -723,6 +724,30 @@ export default function AnswersScreen() {
     </>
   );
 
+  // Stable renderItem identity so FlatList doesn't tear down/rebuild row
+  // trees on unrelated parent re-renders (AnswerCard itself is memoized).
+  const renderAnswerItem = useCallback(({ item }: { item: Answer }) => {
+    const author = authorsMap[item.author_id];
+    const isOwn  = item.author_id === profileId;
+    return (
+      <AnswerCard
+        answer={item}
+        author={author}
+        isOwn={isOwn}
+        upvoted={upvotedIds.has(item.id)}
+        onUpvote={() => handleUpvote(item.id)}
+        onMessage={author && !isOwn ? () => handleMessage(author) : undefined}
+        onModerate={!isOwn ? () => moderationMenu({
+          reporterId: profileId,
+          authorId: item.author_id,
+          onReport: () => reportAnswerFlow(item.id, profileId),
+          onBlocked: () => setAnswers((prev) => prev.filter((a) => a.author_id !== item.author_id)),
+        }) : undefined}
+        onDelete={isOwn ? () => handleDeleteAnswer(item.id) : undefined}
+      />
+    );
+  }, [authorsMap, profileId, upvotedIds]);
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView
@@ -742,7 +767,7 @@ export default function AnswersScreen() {
       {loading ? (
         <>
           {ListHeader}
-          <ActivityIndicator color={palette.ink40} style={{ marginTop: spacing.xl }} />
+          <SkeletonList count={4} />
         </>
       ) : (
         <FlatList
@@ -763,27 +788,7 @@ export default function AnswersScreen() {
               </View>
             ) : null
           }
-          renderItem={({ item }) => {
-            const author = authorsMap[item.author_id];
-            const isOwn  = item.author_id === profileId;
-            return (
-              <AnswerCard
-                answer={item}
-                author={author}
-                isOwn={isOwn}
-                upvoted={upvotedIds.has(item.id)}
-                onUpvote={() => handleUpvote(item.id)}
-                onMessage={author && !isOwn ? () => handleMessage(author) : undefined}
-                onModerate={!isOwn ? () => moderationMenu({
-                  reporterId: profileId,
-                  authorId: item.author_id,
-                  onReport: () => reportAnswerFlow(item.id, profileId),
-                  onBlocked: () => setAnswers((prev) => prev.filter((a) => a.author_id !== item.author_id)),
-                }) : undefined}
-                onDelete={isOwn ? () => handleDeleteAnswer(item.id) : undefined}
-              />
-            );
-          }}
+          renderItem={renderAnswerItem}
         />
       )}
 

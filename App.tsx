@@ -1,10 +1,13 @@
 import './src/i18n';
 import React, { useEffect, useState } from 'react';
 import { configureNotificationHandler } from './src/lib/notifications';
+import { initCrashReporting, ErrorBoundary } from './src/lib/crashReporting';
 
-// Configure notification display behaviour before any component mounts
+// Configure notification display behaviour + crash reporting before any
+// component mounts, so both are active for the very first render.
 configureNotificationHandler();
-import { View, Text, StyleSheet } from 'react-native';
+initCrashReporting();
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -16,7 +19,7 @@ import {
   HankenGrotesk_600SemiBold,
 } from '@expo-google-fonts/hanken-grotesk';
 import { palette, fontSize } from './src/theme/tokens';
-import { getLocalProfile, LocalProfile } from './src/lib/storage';
+import { getLocalProfile, clearLocalProfile, LocalProfile } from './src/lib/storage';
 import Navigation from './src/navigation';
 
 export default function App() {
@@ -67,7 +70,32 @@ export default function App() {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <StatusBar style="light" />
-        <Navigation initialProfile={initialProfile} />
+        <ErrorBoundary
+          fallback={({ resetError }) => (
+            <View style={styles.splash}>
+              <Text style={styles.splashTitle}>lore</Text>
+              <Text style={styles.errorText}>Something went wrong.</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={resetError} activeOpacity={0.85}>
+                <Text style={styles.retryBtnText}>Try again</Text>
+              </TouchableOpacity>
+              {/* If the same bad local state (corrupted profile, bad route
+                  param) caused the crash, "Try again" alone re-mounts
+                  Navigation with that exact same state and crashes again —
+                  trapping the user with no way out. This clears local
+                  profile data so a retry falls back to a clean onboarding
+                  flow instead of looping. */}
+              <TouchableOpacity
+                style={styles.resetBtn}
+                onPress={() => { clearLocalProfile().catch(() => {}); setInitialProfile(null); resetError(); }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.resetBtnText}>Reset app</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        >
+          <Navigation initialProfile={initialProfile} />
+        </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -105,5 +133,34 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: palette.ink40,
     textAlign: 'center',
+  },
+  errorText: {
+    fontFamily: 'HankenGrotesk_400Regular',
+    fontSize: fontSize.base,
+    color: palette.ink20,
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  retryBtn: {
+    backgroundColor: palette.accent,
+    borderRadius: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+  },
+  retryBtnText: {
+    fontFamily: 'HankenGrotesk_600SemiBold',
+    fontSize: fontSize.base,
+    color: '#fff',
+  },
+  resetBtn: {
+    marginTop: 16,
+    paddingVertical: 8,
+  },
+  resetBtnText: {
+    fontFamily: 'HankenGrotesk_400Regular',
+    fontSize: fontSize.sm,
+    color: palette.ink40,
+    textDecorationLine: 'underline',
   },
 });

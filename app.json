@@ -57,7 +57,8 @@
         }
       ],
       "expo-asset",
-      "expo-localization"
+      "expo-localization",
+      "@sentry/react-native"
     ],
     "locales": {
       "en": "./locales/en.json",
@@ -69,7 +70,8 @@
       },
       "revenueCatIosApiKey": "appl_naIUsZgRtpkUnljVaNZzArpxReP",
       "posthogApiKey": "phc_sxipCdQbKajSuqzt7eAv5JBx4JfmwkKGRp9oWE8Cd47t",
-      "posthogHost": "https://us.i.posthog.com"
+      "posthogHost": "https://us.i.posthog.com",
+      "sentryDsn": "REPLACE_WITH_SENTRY_DSN"
     }
   }
 }

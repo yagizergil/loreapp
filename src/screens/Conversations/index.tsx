@@ -1,16 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator,
+  View, Text, TouchableOpacity, StyleSheet, FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useProfile } from '../../lib/ProfileContext';
 import {
-  Conversation, Profile,
-  fetchConversations, fetchProfiles, fetchMessages,
+  Profile,
+  fetchConversationsSummary, fetchProfiles,
 } from '../../lib/supabase';
 import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/tokens';
 import Avatar from '../../components/ui/Avatar';
+import { SkeletonList } from '../../components/ui/SkeletonRow';
+import { captureError } from '../../lib/crashReporting';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
@@ -25,7 +27,7 @@ function timeAgo(dateStr: string): string {
 }
 
 interface ConvItem {
-  conversation: Conversation;
+  conversationId: string;
   other: Profile;
   lastMessageBody: string;
   lastMessageTime: string;
@@ -40,37 +42,35 @@ export default function ConversationsScreen() {
 
   const [items, setItems]     = useState<ConvItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
+    setLoadError(false);
     try {
-      const convs = await fetchConversations(profile.id);
-      if (!convs.length) { setItems([]); setLoading(false); return; }
+      // Single RPC computes last-message + unread-count per conversation
+      // server-side, instead of fetching every conversation's full message
+      // history client-side (the old N+1 pattern).
+      const summaries = await fetchConversationsSummary(profile.id);
+      if (!summaries.length) { setItems([]); setLoading(false); return; }
 
-      const otherIds = convs.map((c) =>
-        c.user1_id === profile.id ? c.user2_id : c.user1_id
-      );
-      const others = await fetchProfiles(otherIds);
+      const others = await fetchProfiles(summaries.map((s) => s.other_id));
       const othersMap = Object.fromEntries(others.map((p) => [p.id, p]));
 
-      const enriched: ConvItem[] = await Promise.all(
-        convs.map(async (c) => {
-          const otherId = c.user1_id === profile.id ? c.user2_id : c.user1_id;
-          const msgs = await fetchMessages(c.id);
-          const last = msgs[msgs.length - 1];
-          const unreadCount = msgs.filter((m) => m.sender_id !== profile.id && !m.read).length;
-          return {
-            conversation: c,
-            other: othersMap[otherId] ?? { id: otherId, nickname: '?', avatar: 'OW', gender: null },
-            lastMessageBody: last?.body ?? '',
-            lastMessageTime: last?.created_at ?? c.created_at,
-            unreadCount,
-          };
-        })
-      );
-      enriched.sort((a, b) =>
-        new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+      const enriched: ConvItem[] = summaries.map((s) => ({
+        conversationId: s.conversation_id,
+        other: othersMap[s.other_id] ?? { id: s.other_id, nickname: '?', avatar: 'OW', gender: null },
+        lastMessageBody: s.last_message_body ?? '',
+        lastMessageTime: s.last_message_time,
+        unreadCount: s.unread_count,
+      }));
       setItems(enriched);
-    } catch {}
+    } catch (e) {
+      // Distinct from "you have no conversations" — an RPC failure (e.g. the
+      // conversations_summary.sql migration hasn't been run yet) must not
+      // look like an empty inbox.
+      captureError(e);
+      setLoadError(true);
+    }
     finally { setLoading(false); }
   }, [profile.id]);
 
@@ -78,7 +78,7 @@ export default function ConversationsScreen() {
 
   function openChat(item: ConvItem) {
     navigation.getParent()?.navigate('Chat', {
-      conversationId: item.conversation.id,
+      conversationId: item.conversationId,
       otherUserId:    item.other.id,
       otherNickname:  item.other.nickname,
       otherAvatar:    item.other.avatar,
@@ -93,7 +93,15 @@ export default function ConversationsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={palette.ink40} style={{ marginTop: 48 }} />
+        <SkeletonList count={6} />
+      ) : loadError ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyTitle}>{t('common.error')}</Text>
+          <Text style={styles.emptyNote}>{t('conversations.loadError')}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={load} activeOpacity={0.85}>
+            <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
+          </TouchableOpacity>
+        </View>
       ) : items.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyTitle}>{t('conversations.emptyTitle')}</Text>
@@ -102,7 +110,7 @@ export default function ConversationsScreen() {
       ) : (
         <FlatList
           data={items}
-          keyExtractor={(i) => i.conversation.id}
+          keyExtractor={(i) => i.conversationId}
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
           renderItem={({ item }) => {
@@ -226,5 +234,17 @@ const styles = StyleSheet.create({
     color: palette.ink40,
     textAlign: 'center',
     lineHeight: fontSize.sm * 1.6,
+  },
+  retryBtn: {
+    marginTop: spacing.sm,
+    backgroundColor: palette.accent,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 12,
+  },
+  retryBtnText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.base,
+    color: palette.white,
   },
 });

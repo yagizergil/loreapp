@@ -165,6 +165,7 @@ const en = {
     title:      'Messages',
     emptyTitle: 'No messages yet',
     emptyBody:  'Answer a question and message the person who replied.',
+    loadError:  "Couldn't load your messages. Please check your connection and try again.",
   },
 
   // ─── Notifications screen ────────────────────────────────────────────────────

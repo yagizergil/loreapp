@@ -165,6 +165,7 @@ const tr = {
     title:      'Mesajlar',
     emptyTitle: 'Henüz mesaj yok',
     emptyBody:  'Bir soruya cevap ver ve cevap verenle mesajlaş.',
+    loadError:  'Mesajların yüklenemedi. Bağlantını kontrol edip tekrar dene.',
   },
 
   // ─── Notifications screen ────────────────────────────────────────────────────

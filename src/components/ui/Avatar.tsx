@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text } from 'react-native';
+import { Image } from 'expo-image';
 import { getAvatarEmoji, getAvatarBg } from '../../lib/avatar';
 import { genderColor } from '../../lib/genderColors';
 import { Gender } from '../../lib/storage';
@@ -32,6 +33,8 @@ export default function Avatar({ avatarKey, avatarUrl, gender, size = 48, ring =
         <Image
           source={{ uri: avatarUrl }}
           style={{ width: innerSize, height: innerSize, borderRadius: innerSize / 2 }}
+          cachePolicy="memory-disk"
+          transition={150}
         />
       ) : (
         <View

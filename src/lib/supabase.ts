@@ -367,6 +367,28 @@ export async function fetchConversations(userId: string): Promise<Conversation[]
   return data as Conversation[];
 }
 
+export interface ConversationSummary {
+  conversation_id: string;
+  other_id: string;
+  last_message_body: string | null;
+  last_message_time: string;
+  unread_count: number;
+}
+
+/** One query for the whole Conversations list — last message + unread count
+ *  per conversation, computed server-side. Replaces the old N+1 pattern of
+ *  fetching every conversation's full message history client-side. */
+export async function fetchConversationsSummary(profileId: string): Promise<ConversationSummary[]> {
+  const { data, error } = await supabase.rpc('conversations_with_last_message', {
+    p_profile_id: profileId,
+  });
+  // Throw (don't swallow to []) — an RPC error here (e.g. the SQL migration
+  // hasn't been run yet) must NOT look identical to "you have no
+  // conversations". The caller shows a distinct error state instead.
+  if (error) throw error;
+  return (data as ConversationSummary[]) ?? [];
+}
+
 export async function fetchMessages(conversationId: string): Promise<Message[]> {
   const { data, error } = await supabase
     .from('messages')

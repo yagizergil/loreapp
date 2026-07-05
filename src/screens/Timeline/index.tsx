@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
-  ActivityIndicator,
   RefreshControl,
   Animated,
   LayoutChangeEvent,
@@ -20,6 +19,7 @@ import {
   fetchMyAnsweredQuestions,
 } from '../../lib/supabase';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
+import { SkeletonList } from '../../components/ui/SkeletonRow';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
@@ -244,7 +244,7 @@ export default function TimelineScreen() {
 
       {/* ── Content ── */}
       {loading ? (
-        <ActivityIndicator color={palette.ink40} style={{ marginTop: spacing.xxl }} />
+        <SkeletonList count={5} withAvatar={false} />
       ) : (
         <FlatList
           data={data}
