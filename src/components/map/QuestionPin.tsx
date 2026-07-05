@@ -14,11 +14,12 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Marker } from 'react-native-maps';
 import * as Haptics from 'expo-haptics';
 import { Question } from '../../lib/supabase';
 import { getQuestionBadge } from '../../lib/questionBadge';
+import { palette, fontFamily } from '../../theme/tokens';
 import { SealHalf, TYPE_SHADE, MINE_SHADE, FALLBACK_SHADE } from './SealMark';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -27,6 +28,9 @@ interface Props {
   question:     Question;
   onPress:      () => void;
   zoom?:        number; // kept for API compat but pin size is now fixed
+  /** When this pin represents a cluster, the total number of questions
+   *  grouped into it — shown as a numeric badge, not just a decorative
+   *  "there's more" hint, so density is actually legible at a glance. */
   extraCount?:  number;
   locked?:      boolean;
   mine?:        boolean; // kullanıcının kendi sorduğu soru → sarı mühür
@@ -134,12 +138,15 @@ export default function QuestionPin({
           <SealHalf side="right" w={halfW} h={SIZE} gid={gidR} shade={shade} />
         </View>
 
-        {/* Cluster dot indicator */}
-        {extraCount > 0 && !locked && (
-          <View style={[styles.clusterBadge, { right: halfW - 6 }]}>
-            <View style={styles.clusterDot} />
-            <View style={styles.clusterDot} />
-            <View style={styles.clusterDot} />
+        {/* Cluster count badge — the actual number, not a decorative hint */}
+        {extraCount > 0 && (
+          <View style={[
+            styles.clusterBadge,
+            { right: halfW - 10, backgroundColor: locked ? palette.ink60 : palette.accent },
+          ]}>
+            <Text style={styles.clusterBadgeText} numberOfLines={1}>
+              {extraCount > 99 ? '99+' : extraCount}
+            </Text>
           </View>
         )}
 
@@ -187,20 +194,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   clusterBadge: {
-    position:        'absolute',
-    bottom:          2,
-    flexDirection:   'row',
-    gap:             2,
-    backgroundColor: 'rgba(0,0,0,0.38)',
-    borderRadius:    5,
-    paddingHorizontal: 3,
-    paddingVertical: 2,
+    position:          'absolute',
+    top:               -4,
+    minWidth:          18,
+    height:            18,
+    borderRadius:      9,
+    alignItems:        'center',
+    justifyContent:    'center',
+    paddingHorizontal: 4,
+    borderWidth:       1.5,
+    borderColor:       '#0B0D12',
   },
-  clusterDot: {
-    width:           3,
-    height:          3,
-    borderRadius:    1.5,
-    backgroundColor: '#fff',
-    opacity:         0.9,
+  clusterBadgeText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize:   10,
+    lineHeight: 12,
+    color:      '#fff',
   },
 });

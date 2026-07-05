@@ -21,6 +21,20 @@ const LAST_REGION_KEY = '@lore/last_region';
 // Free users see this many rows in full; the rest render locked/blurred.
 const FREE_VISIBLE_ROWS = 3;
 
+// Module-level cache: leaderboard data doesn't need to be real-time, and
+// re-fetching + showing a loading spinner every single time the sheet opens
+// (as it did before) reads as unpolished. Stale-while-revalidate: reopening
+// within CACHE_TTL_MS shows the last result INSTANTLY with no spinner, while
+// quietly refreshing in the background.
+interface LeaderboardCache {
+  key: string;
+  entries: LeaderboardEntry[];
+  myRank: { rank: number; answerCount: number } | null;
+  fetchedAt: number;
+}
+let cache: LeaderboardCache | null = null;
+const CACHE_TTL_MS = 3 * 60 * 1000;
+
 interface Props {
   profileId: string;
   isPremium: boolean;
@@ -44,9 +58,14 @@ const LeaderboardRow = React.memo(function LeaderboardRow({ item, isMe }: { item
 
 export default function LeaderboardSheet({ profileId, isPremium, onClose }: Props) {
   const { t } = useTranslation();
-  const [loading, setLoading]   = useState(true);
-  const [entries, setEntries]   = useState<LeaderboardEntry[]>([]);
-  const [myRank, setMyRank]     = useState<{ rank: number; answerCount: number } | null>(null);
+  const cacheKey = `${profileId}:${isPremium}`;
+  const cached = cache && cache.key === cacheKey && (Date.now() - cache.fetchedAt) < CACHE_TTL_MS
+    ? cache
+    : null;
+
+  const [loading, setLoading]   = useState(!cached);
+  const [entries, setEntries]   = useState<LeaderboardEntry[]>(cached?.entries ?? []);
+  const [myRank, setMyRank]     = useState<{ rank: number; answerCount: number } | null>(cached?.myRank ?? null);
   const [noLocation, setNoLocation] = useState(false);
 
   const scale   = useSharedValue(0.88);
@@ -60,10 +79,14 @@ export default function LeaderboardSheet({ profileId, isPremium, onClose }: Prop
     scale.value   = withSpring(1, { damping: 18, stiffness: 200 });
     opacity.value = withTiming(1, { duration: 220 });
 
+    track('leaderboard_viewed', { entries: cached?.entries.length ?? 0, rank: cached?.myRank?.rank ?? null, cached: !!cached });
+
+    // Always refresh in the background — cached data (if any) is shown
+    // instantly with no spinner, and silently replaced once this resolves.
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(LAST_REGION_KEY);
-        if (!saved) { setNoLocation(true); setLoading(false); return; }
+        if (!saved) { if (!cached) { setNoLocation(true); setLoading(false); } return; }
         const { latitude, longitude } = JSON.parse(saved);
         const [top, mine] = await Promise.all([
           fetchCityLeaderboard(latitude, longitude, isPremium),
@@ -71,9 +94,9 @@ export default function LeaderboardSheet({ profileId, isPremium, onClose }: Prop
         ]);
         setEntries(top);
         setMyRank(mine);
-        track('leaderboard_viewed', { entries: top.length, rank: mine?.rank ?? null });
+        cache = { key: cacheKey, entries: top, myRank: mine, fetchedAt: Date.now() };
       } catch {
-        setNoLocation(true);
+        if (!cached) setNoLocation(true);
       } finally {
         setLoading(false);
       }
