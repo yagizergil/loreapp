@@ -10,7 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import MapView, { MapStyleElement, Region, Circle, Marker } from 'react-native-maps';
+import MapView, { MapStyleElement, Region, Circle } from 'react-native-maps';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
@@ -21,7 +21,7 @@ import { usePremium } from '../../lib/PremiumContext';
 import { useUnreadCounts } from '../../lib/UnreadCountsContext';
 import { mapAskEvent } from '../../lib/mapEvents';
 import { distanceKm, FREE_RADIUS_KM, PREMIUM_RADIUS_KM, MIN_NEARBY_QUESTIONS, MAX_NEARBY_QUESTIONS } from '../../lib/distance';
-import { getQuestionBadge } from '../../lib/questionBadge';
+import { getQuestionBadge, badgePriority } from '../../lib/questionBadge';
 import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { useNotifications } from '../../hooks/useNotifications';
 import {
@@ -39,8 +39,6 @@ import { IconBell, IconLocateMe } from '../../components/ui/Icons';
 import QuestionSheet from '../../components/sheet/QuestionSheet';
 import AskQuestionModal from '../../components/sheet/AskQuestionModal';
 import LeaderboardSheet from '../../components/sheet/LeaderboardSheet';
-import ClusterSheet from '../../components/sheet/ClusterSheet';
-import useClusteredQuestions, { ClusterItem } from '../../hooks/useClusteredQuestions';
 import { useTranslation } from 'react-i18next';
 
 
@@ -66,9 +64,7 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
 
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [region, setRegion] = useState<Region>(ISTANBUL);
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
-  const [clusterQuestions, setClusterQuestions] = useState<Question[] | null>(null);
   const [showAsk, setShowAsk] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
@@ -88,47 +84,21 @@ export default function MapScreen() {
   });
   const [filter, setFilter] = useState<'all' | 'new'>('all');
 
-  // Debounced zoom: only update when the integer zoom level actually changes.
-  // This prevents mass tracksViewChanges re-enables across all pins during smooth pinch gestures.
-  const [zoom, setZoom] = useState(() => Math.round(Math.log2(360 / ISTANBUL.latitudeDelta)));
-  const zoomRef = useRef(zoom);
-  const regionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const clusterDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleRegionChangeComplete = useCallback((r: Region) => {
-    const next = Math.round(Math.log2(360 / r.latitudeDelta));
-    if (next !== zoomRef.current) {
-      zoomRef.current = next;
-      // Debounce: wait until the user has stopped zooming before updating
-      if (regionDebounceRef.current) clearTimeout(regionDebounceRef.current);
-      regionDebounceRef.current = setTimeout(() => setZoom(next), 200);
-    }
-    // `region` only feeds the clustering hook (useClusteredQuestions), which
-    // re-queries supercluster and changes the marker set on every update.
-    // Setting it directly on every onRegionChangeComplete (which fires
-    // repeatedly during a drag/pinch, not just once at gesture end) churns
-    // markers mid-gesture and can crash the native map view. Debounce it.
-    if (clusterDebounceRef.current) clearTimeout(clusterDebounceRef.current);
-    clusterDebounceRef.current = setTimeout(() => setRegion(r), 250);
-  }, []);
-
-  // Every *programmatic* camera move (initial GPS fix, "go to my location",
-  // random question, cluster zoom-in) must update `region` state immediately,
-  // not just call the native animateToRegion. onRegionChangeComplete is not
-  // guaranteed to fire reliably for programmatic moves on every platform, so
-  // relying on it alone left `region` stuck at the hardcoded ISTANBUL default
-  // until the user made their own gesture — meaning the clustering hook
-  // clustered real, already-loaded questions against the wrong bounding box
-  // and showed nothing until a manual pinch/zoom finally updated `region`.
   const moveMapTo = useCallback((r: Region, duration = 500) => {
-    if (regionDebounceRef.current) clearTimeout(regionDebounceRef.current);
-    if (clusterDebounceRef.current) clearTimeout(clusterDebounceRef.current);
     mapRef.current?.animateToRegion(r, duration);
-    const nextZoom = Math.round(Math.log2(360 / r.latitudeDelta));
-    zoomRef.current = nextZoom;
-    setZoom(nextZoom);
-    setRegion(r);
   }, []);
+
+  // Map clustering was pulled out entirely — it kept crashing on real
+  // devices during zoom (native marker churn from supercluster's ephemeral
+  // cluster ids forcing Marker remounts) and, separately, left the map blank
+  // on first load. Instead: show only a capped, optimized number of pins at
+  // once so a dense area (60+ questions within a few km) never clutters or
+  // strains the eye, and grow that cap a little each time the user answers
+  // or asks a question — "answer to see more" — with an on-screen hint when
+  // more are waiting. No native marker-count churn, no crash surface.
+  const INITIAL_VISIBLE_PINS = 18;
+  const VISIBLE_PINS_INCREMENT = 6;
+  const [visibleCap, setVisibleCap] = useState(INITIAL_VISIBLE_PINS);
 
   const isLocked = useCallback((q: Question) => {
     if (isPremium || !userLocation) return false;
@@ -139,7 +109,7 @@ export default function MapScreen() {
   // Kendi sorduğun sorular haritada kalır ve sarı mühürle gösterilir.
   // Memoized: this was previously recomputed on every render (including
   // unrelated ones like toggling the leaderboard sheet), which also broke
-  // the memoization chain feeding spreadOffsets/mapItems below.
+  // the memoization chain feeding spreadOffsets/visibleQuestions below.
   const filteredQuestions = useMemo(() => (filter === 'all'
     ? questions
     : questions.filter((q) => getQuestionBadge(q) === filter)
@@ -174,12 +144,27 @@ export default function MapScreen() {
     return offsets;
   }, [filteredQuestions]);
 
-  // Real clustering (supercluster) instead of a flat pin list — a dense area
-  // (e.g. 60+ questions inside 1km) previously rendered every single pin
-  // individually, overlapping and cluttering the map. Now nearby questions
-  // merge into a single "N sorular" cluster marker until the user zooms in,
-  // exactly like professional map apps (Google Maps, Airbnb) handle density.
-  const mapItems = useClusteredQuestions(filteredQuestions, region);
+  // Rank the most worth-seeing questions first (badge priority, then most
+  // answered, then newest), so the capped visible window always surfaces the
+  // best content rather than an arbitrary server-order slice.
+  const sortedQuestions = useMemo(() => [...filteredQuestions].sort((a, b) => {
+    const bp = badgePriority(getQuestionBadge(b)) - badgePriority(getQuestionBadge(a));
+    if (bp !== 0) return bp;
+    const ac = b.answer_count - a.answer_count;
+    if (ac !== 0) return ac;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  }), [filteredQuestions]);
+
+  // Only render up to `visibleCap` pins at once — an unbounded flat list
+  // (60+ pins within a few km) overlaps and clutters the map / strains the
+  // eye. The cap grows a little each time the user answers or asks a
+  // question (see handleAnswered/handlePosted), so more of the fetched set
+  // reveals itself as the user engages, instead of dumping everything at once.
+  const visibleQuestions = useMemo(
+    () => sortedQuestions.slice(0, visibleCap),
+    [sortedQuestions, visibleCap],
+  );
+  const moreNearbyCount = Math.max(0, sortedQuestions.length - visibleCap);
 
   useEffect(() => {
     mapAskEvent.trigger = () => setShowAsk(true);
@@ -322,24 +307,6 @@ export default function MapScreen() {
     setSelectedQuestion(q);
   }, [isLocked, navigation, questions, userLocation]);
 
-  // Cluster tap: zoom in if the cluster would still split into something
-  // smaller (normal map-app "tap cluster to zoom" behavior); otherwise the
-  // points are already as separated as they'll get (near-identical
-  // coordinates), so open a picker sheet instead of zooming forever.
-  const handleClusterPress = useCallback((cluster: ClusterItem) => {
-    if (cluster.expansionZoom > zoomRef.current) {
-      const targetDelta = 360 / Math.pow(2, cluster.expansionZoom);
-      moveMapTo({
-        latitude: cluster.lat,
-        longitude: cluster.lng,
-        latitudeDelta: targetDelta,
-        longitudeDelta: targetDelta,
-      }, 400);
-    } else {
-      setClusterQuestions(cluster.questions);
-    }
-  }, [moveMapTo]);
-
   const [mapRefreshKey, setMapRefreshKey] = useState(0);
 
   const handleSheetClose = useCallback(() => {
@@ -349,22 +316,26 @@ export default function MapScreen() {
     setMapRefreshKey((k) => k + 1);
   }, []);
 
+  // Answering (or asking) reveals more of the already-fetched question set —
+  // the "answer to see more" progressive reveal the cap exists for.
   const handleAnswered = useCallback((questionId: string) => {
     setAnsweredIds((prev) => new Set(prev).add(questionId));
+    setVisibleCap((c) => c + VISIBLE_PINS_INCREMENT);
   }, []);
 
   const handlePosted = useCallback(() => {
+    setVisibleCap((c) => c + VISIBLE_PINS_INCREMENT);
     if (userLocation) {
       loadQuestions(userLocation.lat, userLocation.lng);
     }
   }, [userLocation]);
 
-  const availableQuestions = useMemo(() => filteredQuestions.filter(
+  const availableQuestions = useMemo(() => visibleQuestions.filter(
     (q) => !isLocked(q) && q.author_id !== profile.id && !answeredIds.has(q.id)
-  ), [filteredQuestions, isLocked, profile.id, answeredIds]);
+  ), [visibleQuestions, isLocked, profile.id, answeredIds]);
 
   const handleRandomQuestion = useCallback(() => {
-    const pool = questions.filter(
+    const pool = visibleQuestions.filter(
       (q) => !isLocked(q) && q.author_id !== profile.id && !answeredIds.has(q.id)
     );
     if (!pool.length) return;
@@ -374,7 +345,7 @@ export default function MapScreen() {
       { latitude: q.lat, longitude: q.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 },
       500
     );
-  }, [questions, isLocked, answeredIds, profile.id, moveMapTo]);
+  }, [visibleQuestions, isLocked, answeredIds, profile.id, moveMapTo]);
 
   const handleGoToMyLocation = useCallback(async () => {
     if (userLocation) {
@@ -412,12 +383,6 @@ export default function MapScreen() {
         showsMyLocationButton={false}
         showsCompass={false}
         toolbarEnabled={false}
-        // useClusteredQuestions returns [] below zoom 11 (city-wide view);
-        // without this floor, an ordinary pinch-to-zoom-out would show a
-        // blank map with real data underneath and no explanation. 12 keeps
-        // a safety margin above that cutoff.
-        minZoomLevel={12}
-        onRegionChangeComplete={handleRegionChangeComplete}
       >
         {/* Premium zone circle (faint) — the locked 1–4 km ring for free users */}
         {userLocation && !isPremium && (
@@ -441,52 +406,21 @@ export default function MapScreen() {
           />
         )}
 
-        {mapItems.map((item) => {
-          if (item.type === 'pin') {
-            const q = item.question;
-            const locked   = isLocked(q);
-            const mine     = q.author_id === profile.id;
-            const viewed   = viewedIds.has(q.id);
-            const coordOffset = spreadOffsets.get(q.id);
-            return (
-              <QuestionPin
-                key={q.id}
-                question={q}
-                zoom={zoom}
-                locked={locked}
-                mine={mine}
-                viewed={viewed}
-                coordOffset={coordOffset}
-                refreshKey={mapRefreshKey}
-                onPress={() => handlePinPress(q)}
-              />
-            );
-          }
-
-          // Cluster: rendered as the top question's pin + a count badge
-          // (QuestionPin already supports this via extraCount). Locked state
-          // is "everyone in this cluster is locked" (not just topQuestion) —
-          // clustering only groups by on-screen proximity, not lock status,
-          // so a single unlocked question in the group still reads as
-          // reachable rather than falsely showing a locked pin.
-          // Supercluster's cluster_id is an internal KD-tree index — it gets
-          // reassigned on every recompute even for a visually-identical
-          // cluster, which previously keyed the Marker and forced a full
-          // unmount/remount (re-triggering tracksViewChanges) on every
-          // debounced region tick during a zoom gesture. Keying on rounded
-          // position + count instead keeps identity stable across recomputes
-          // unless the cluster's actual composition changes, eliminating the
-          // marker-churn burst that's a known react-native-maps crash trigger.
-          const clusterKey = `cluster-${item.lat.toFixed(4)}-${item.lng.toFixed(4)}-${item.count}`;
+        {visibleQuestions.map((q) => {
+          const locked   = isLocked(q);
+          const mine     = q.author_id === profile.id;
+          const viewed   = viewedIds.has(q.id);
+          const coordOffset = spreadOffsets.get(q.id);
           return (
             <QuestionPin
-              key={clusterKey}
-              question={item.topQuestion}
-              zoom={zoom}
-              locked={item.questions.every(isLocked)}
-              extraCount={item.count}
+              key={q.id}
+              question={q}
+              locked={locked}
+              mine={mine}
+              viewed={viewed}
+              coordOffset={coordOffset}
               refreshKey={mapRefreshKey}
-              onPress={() => handleClusterPress(item)}
+              onPress={() => handlePinPress(q)}
             />
           );
         })}
@@ -630,14 +564,13 @@ export default function MapScreen() {
         />
       )}
 
-      {/* Cluster picker — tapping a cluster that can't zoom in any further */}
-      {clusterQuestions && (
-        <ClusterSheet
-          questions={clusterQuestions}
-          lockedIds={new Set(clusterQuestions.filter(isLocked).map((q) => q.id))}
-          onSelect={(q) => { setClusterQuestions(null); handlePinPress(q); }}
-          onClose={() => setClusterQuestions(null)}
-        />
+      {/* "More nearby" hint — only shown when the fetched set has more
+          questions than the current visible cap, so users know answering
+          or asking reveals more instead of assuming that's all there is. */}
+      {moreNearbyCount > 0 && !selectedQuestion && !showAsk && (
+        <View style={[styles.moreNearbyPill, { top: (Platform.OS === 'ios' ? 50 : 28) + 116 }]} pointerEvents="none">
+          <Text style={styles.moreNearbyText}>{t('map.moreNearby', { n: moreNearbyCount })}</Text>
+        </View>
       )}
     </View>
   );
@@ -838,6 +771,22 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodySemiBold,
     fontSize: fontSize.base,
     color: palette.white,
+  },
+  moreNearbyPill: {
+    position: 'absolute',
+    alignSelf: 'center',
+    backgroundColor: palette.ink80 + 'E6',
+    borderRadius: radius.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: palette.ink60,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 7,
+    ...shadow.sm,
+  },
+  moreNearbyText: {
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: fontSize.xs,
+    color: palette.ink20,
   },
 });
 

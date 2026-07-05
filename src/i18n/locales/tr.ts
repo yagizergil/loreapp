@@ -91,6 +91,7 @@ const tr = {
     emptyTitle:   'Burada henüz kimse yok',
     emptyBody:    'Yakınında henüz soru yok — ilk soruyu sen sor ve sohbeti başlat.',
     emptyCta:     'İlk soruyu sor',
+    moreNearby:   'Yakında {{n}} soru daha var — cevapla veya soru sor, gelsinler',
   },
 
   // ─── Question Sheet (modal) ───────────────────────────────────────────────────
