@@ -11,6 +11,7 @@ import { containsObjectionableContent } from '../../lib/contentFilter';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { track } from '../../lib/analytics';
+import { firstActionEvent } from '../../lib/engagementEvents';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
@@ -180,6 +181,7 @@ export default function AskQuestionModal({ profileId, userLocation, onClose, onP
       }
       await postQuestion(profileId, questionBody.trim(), selectedType, userLocation.lat, userLocation.lng, options);
       track('question_posted', { type: selectedType });
+      firstActionEvent.notify();
       onPosted();
       onClose();
     } catch (e: any) {

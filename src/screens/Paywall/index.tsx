@@ -19,6 +19,7 @@ import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../th
 import { RootStackParamList } from '../../navigation';
 import { LINKS } from '../../lib/links';
 import { track } from '../../lib/analytics';
+import { getPaywallCtaVariant } from '../../lib/experiments';
 import WaxSeal from '../../components/ui/WaxSeal';
 
 type Plan = 'monthly' | 'yearly';
@@ -113,9 +114,14 @@ export default function PaywallScreen() {
   const [busy, setBusy] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // A/B experiment variant — resolved once per mount from the already-loaded
+  // PostHog flag cache (no loading state needed) and orthogonal to `trigger`
+  // (trigger = why the paywall opened; ctaVariant = which copy they saw).
+  const ctaVariant = useRef(getPaywallCtaVariant()).current;
+
   // Analytics: one paywall_shown per mount, tagged with the trigger that opened it.
   useEffect(() => {
-    track('paywall_shown', { trigger, count });
+    track('paywall_shown', { trigger, count, experiment_variant: ctaVariant });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -172,17 +178,17 @@ export default function PaywallScreen() {
       Alert.alert(t('paywall.errorTitle'), t('paywall.errorUnavailable'));
       return;
     }
-    track('purchase_started', { trigger, plan });
+    track('purchase_started', { trigger, plan, experiment_variant: ctaVariant });
     setBusy(true);
     const res = await purchase(pkg);
     setBusy(false);
     if (res.ok) {
-      track('purchase_succeeded', { trigger, plan });
+      track('purchase_succeeded', { trigger, plan, experiment_variant: ctaVariant });
       // Satın alma başarılı: premium tespit edilse de edilmese de (RC senkron
       // gecikmesine karşı) başarı ekranını göster. mirror zaten premium'u açar.
       setShowSuccess(true);
     } else if (!res.cancelled) {
-      track('purchase_failed', { trigger, plan });
+      track('purchase_failed', { trigger, plan, experiment_variant: ctaVariant });
       Alert.alert(t('paywall.errorTitle'), t('paywall.errorBody'));
     }
   }
@@ -193,7 +199,7 @@ export default function PaywallScreen() {
     const res = await restore();
     setBusy(false);
     if (res.ok && res.isPremium) {
-      track('purchase_restored', { trigger });
+      track('purchase_restored', { trigger, experiment_variant: ctaVariant });
       setShowSuccess(true);
     } else if (res.ok) {
       Alert.alert(t('paywall.restoreNoneTitle'), t('paywall.restoreNoneBody'));
@@ -235,7 +241,15 @@ export default function PaywallScreen() {
     ? t('paywall.trialBadge', { days: monthlyTrialDays })
     : t('paywall.cancelNote');
 
-  const ctaLabel = hasTrial ? t('paywall.ctaTrialDays', { days: trialDays }) : t('paywall.cta');
+  // Experiment (paywall-cta-copy): 'trial_forward' leads with the no-risk
+  // framing in the CTA itself instead of relegating it to the trial note
+  // below. Only applies when there IS a trial to frame — falls back to the
+  // control copy otherwise so it never claims a trial that doesn't exist.
+  const ctaLabel = hasTrial
+    ? (ctaVariant === 'trial_forward'
+        ? t('paywall.ctaTrialForward', { days: trialDays })
+        : t('paywall.ctaTrialDays', { days: trialDays }))
+    : t('paywall.cta');
   const trialNote = hasTrial
     ? t('paywall.trialNoteDays', { days: trialDays, price: selectedPriceStr, per: selectedPer })
     : t('paywall.noTrialNote', { price: selectedPriceStr, per: selectedPer });
@@ -293,7 +307,7 @@ export default function PaywallScreen() {
       {/* ── Close ────────────────────────────────────────────────────────────── */}
       <TouchableOpacity
         style={s.closeBtn}
-        onPress={() => { track('paywall_dismissed', { trigger }); navigation.goBack(); }}
+        onPress={() => { track('paywall_dismissed', { trigger, experiment_variant: ctaVariant }); navigation.goBack(); }}
         activeOpacity={0.7}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
@@ -374,7 +388,7 @@ export default function PaywallScreen() {
         <Text style={s.legalNote}>{t('paywall.autoRenewNote')}</Text>
 
         <View style={s.footerRow}>
-          <TouchableOpacity onPress={() => { track('paywall_dismissed', { trigger }); navigation.goBack(); }} activeOpacity={0.6} hitSlop={12} disabled={busy}>
+          <TouchableOpacity onPress={() => { track('paywall_dismissed', { trigger, experiment_variant: ctaVariant }); navigation.goBack(); }} activeOpacity={0.6} hitSlop={12} disabled={busy}>
             <Text style={s.dismiss}>{t('paywall.dismiss')}</Text>
           </TouchableOpacity>
           <Text style={s.footerSep}>·</Text>

@@ -16,6 +16,7 @@ import { notificationEvents } from '../lib/notificationEvents';
 import { UnreadCountsProvider, useUnreadCounts } from '../lib/UnreadCountsContext';
 import { Question, fetchQuestionById } from '../lib/supabase';
 import { initAnalytics, identifyAnalytics, resetAnalytics, track } from '../lib/analytics';
+import { firstActionEvent } from '../lib/engagementEvents';
 import OnboardingScreen from '../screens/Onboarding';
 import MapScreen from '../screens/Map';
 import TimelineScreen from '../screens/Timeline';
@@ -237,21 +238,46 @@ export default function Navigation({ initialProfile }: Props) {
   // One-time "welcome" soft paywall right after a fresh onboarding (not on
   // returning launches, not after an account upgrade). Persisted so it only
   // ever shows once per install.
+  //
+  // Timing: paywalls convert best right after a real value moment rather
+  // than cold (evidence: RevenueCat/Apphud placement research), so prefer
+  // showing it right after the user's first answer/question this session.
+  // A fallback timer still shows it eventually for users who browse without
+  // acting, preserving the old "always shown once" guarantee.
   const WELCOME_PAYWALL_KEY = '@lore/welcome_paywall_seen';
   useEffect(() => {
     if (!hasProfile || !justOnboarded) return;
     setJustOnboarded(false);
+    let cancelled = false;
+    let shown = false;
+    let fallback: ReturnType<typeof setTimeout> | null = null;
+
     (async () => {
       try {
         const seen = await AsyncStorage.getItem(WELCOME_PAYWALL_KEY);
         if (seen) return;
         await AsyncStorage.setItem(WELCOME_PAYWALL_KEY, '1');
-        // Let the main stack mount before navigating to the modal paywall.
-        setTimeout(() => {
+
+        const showOnce = () => {
+          if (shown || cancelled) return;
+          shown = true;
           navRef.current?.navigate('Paywall', { trigger: 'welcome' });
+        };
+
+        // Let the main stack mount before either path can navigate.
+        setTimeout(() => {
+          if (cancelled) return;
+          firstActionEvent.notify = showOnce;
+          fallback = setTimeout(showOnce, 20000);
         }, 900);
       } catch { /* noop */ }
     })();
+
+    return () => {
+      cancelled = true;
+      firstActionEvent.notify = () => {};
+      if (fallback) clearTimeout(fallback);
+    };
   }, [hasProfile, justOnboarded]);
 
   // Wire notificationEvents deep-link navigation

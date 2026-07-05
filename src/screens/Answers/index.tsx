@@ -27,6 +27,7 @@ import {
 } from '../../lib/supabase';
 import { paywallEvents } from '../../lib/premiumEvents';
 import { track } from '../../lib/analytics';
+import { firstActionEvent } from '../../lib/engagementEvents';
 import { usePremium } from '../../lib/PremiumContext';
 import { supabase } from '../../lib/supabase';
 import { moderationMenu, reportAnswerFlow } from '../../lib/moderation';
@@ -566,6 +567,7 @@ export default function AnswersScreen() {
       setMyChoice(choice);
       setAnswered(true);
       track('answer_submitted', { type: question.type });
+      firstActionEvent.notify();
     } catch (e: any) {
       if (e?.code === '23505') {
         setAnswered(true); // already answered (duplicate) — not a real failure
@@ -596,6 +598,7 @@ export default function AnswersScreen() {
       setText('');
       setAnswered(true);
       track('answer_submitted', { type: question.type });
+      firstActionEvent.notify();
     } catch (e: any) {
       if (e?.code === '23505') {
         // Already answered — fetch fresh so `answers` actually reflects the

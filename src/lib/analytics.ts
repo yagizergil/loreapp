@@ -49,6 +49,18 @@ export function initAnalytics(): void {
 /** Tie subsequent events to a stable profile id. */
 export function identifyAnalytics(profileId: string): void {
   client?.identify(profileId);
+  // Re-evaluate feature flags against the resolved identity (not the prior
+  // anonymous one) so any A/B assignment read afterward (e.g. the paywall
+  // experiment variant) reflects the real user, not a throwaway anon id.
+  client?.reloadFeatureFlags();
+}
+
+/** Read a feature flag value from the SDK's already-loaded local cache
+ *  (synchronous, no network wait). Returns `undefined` if analytics isn't
+ *  configured or the flag hasn't resolved yet — callers must supply a
+ *  sensible default/control fallback. */
+export function getFeatureFlag(key: string): boolean | string | undefined {
+  return client?.getFeatureFlag(key);
 }
 
 /** Clear identity on sign-out so events after this point aren't misattributed. */

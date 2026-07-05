@@ -17,6 +17,7 @@ import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/toke
 import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { track } from '../../lib/analytics';
 import { maybeRequestReviewAfterAnswer } from '../../lib/reviewPrompt';
+import { firstActionEvent } from '../../lib/engagementEvents';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
@@ -153,6 +154,7 @@ export default function QuestionSheet({
       confirmOpacity.value = withTiming(1, { duration: 350 });
       setLocalAnswered(true);
       track('answer_submitted', { type: question.type });
+      firstActionEvent.notify();
       maybeRequestReviewAfterAnswer(track);
       onAnswered(question.id);
     } catch (e: any) {
@@ -189,6 +191,7 @@ export default function QuestionSheet({
       confirmOpacity.value = withTiming(1, { duration: 350 });
       setLocalAnswered(true);
       track('answer_submitted', { type: question.type });
+      firstActionEvent.notify();
       maybeRequestReviewAfterAnswer(track);
       onAnswered(question.id);
     } catch (e: any) {

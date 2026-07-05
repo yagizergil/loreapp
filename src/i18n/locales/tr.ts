@@ -297,6 +297,7 @@ const tr = {
     cta:            'Premium\'a Geç',
     ctaTrial:       '7 Gün Ücretsiz Başla',
     ctaTrialDays:   '{{days}} Gün Ücretsiz Başla',
+    ctaTrialForward: '{{days}} Gün Ücretsiz Dene — İstediğin Zaman İptal Et',
     dismiss:        'Şimdi değil',
     benefit1:       '1 km sınırı kalkar, tüm şehri keşfet',
     benefit2:       'Günlük sınırsız soru & cevap',

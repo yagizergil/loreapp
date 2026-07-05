@@ -297,6 +297,7 @@ const en = {
     cta:            'Go Premium',
     ctaTrial:       'Start 7-Day Free Trial',
     ctaTrialDays:   'Start {{days}}-Day Free Trial',
+    ctaTrialForward: 'Try {{days}} Days Free — Cancel Anytime',
     dismiss:        'Not now',
     benefit1:       'Unlock the whole city, beyond 1 km',
     benefit2:       'Unlimited daily questions & answers',
