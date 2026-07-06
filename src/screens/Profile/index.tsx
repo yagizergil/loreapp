@@ -15,8 +15,11 @@ import Avatar from '../../components/ui/Avatar';
 import LeaderboardSheet from '../../components/sheet/LeaderboardSheet';
 import { getKarmaTier } from '../../lib/karma';
 import {
-  IconMessages, IconSignOut, IconTrash,
+  IconMessages, IconSignOut, IconTrash, IconTimeline, IconTrophy, IconBell,
+  IconGlobe, IconLock, IconDocument, IconBlock, IconMapPin, IconCard,
+  IconStar, IconBug, IconInfo,
 } from '../../components/ui/Icons';
+import { SealMark, TYPE_SHADE } from '../../components/map/SealMark';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import Constants from 'expo-constants';
@@ -269,7 +272,10 @@ export default function ProfileScreen() {
 
       {/* ── Header ── */}
       <View style={[s.header, { paddingTop: insets.top + spacing.base }]}>
-        <Text style={s.headerTitle}>{t('profile.title')}</Text>
+        <View style={s.headerTitleRow}>
+          <SealMark size={22} shade={TYPE_SHADE.open} gid="profileHeaderSeal" />
+          <Text style={s.headerTitle}>{t('profile.title')}</Text>
+        </View>
         <TouchableOpacity
           style={s.msgBtn}
           activeOpacity={0.75}
@@ -285,84 +291,87 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-        {/* ── Avatar card ── */}
-        <View style={s.avatarCard}>
-          <Avatar
-            avatarKey={profile.avatar}
-            avatarUrl={profile.avatarUrl}
-            gender={profile.gender}
-            size={68}
-            ring
-          />
-          <View style={s.avatarMeta}>
-            <View style={s.nicknameRow}>
-              <Text style={s.nickname}>{profile.nickname}</Text>
-              {isPremium && stats && (
-                <View style={[s.karmaTierBadge, { borderColor: getKarmaTier(stats.karma).color + '66', backgroundColor: getKarmaTier(stats.karma).color + '22' }]}>
-                  <Text style={[s.karmaTierText, { color: getKarmaTier(stats.karma).color }]}>
-                    {t(getKarmaTier(stats.karma).label)}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <View style={s.anonBadge}>
-              <View style={[s.anonDot, {
-                backgroundColor: profile.isAnonymous === false ? palette.accent : palette.success,
-              }]} />
-              <Text style={s.anonText}>
-                {profile.isAnonymous === false ? t('profile.account') : t('profile.anonymous')} · {genderLabel}
-              </Text>
+        {/* ── Hero: identity + stats in one card, not two stacked boxes ── */}
+        <View style={s.heroCard}>
+          <View style={s.heroTop}>
+            <Avatar
+              avatarKey={profile.avatar}
+              avatarUrl={profile.avatarUrl}
+              gender={profile.gender}
+              size={68}
+              ring
+            />
+            <View style={s.avatarMeta}>
+              <View style={s.nicknameRow}>
+                <Text style={s.nickname}>{profile.nickname}</Text>
+                {isPremium && stats && (
+                  <View style={[s.karmaTierBadge, { borderColor: getKarmaTier(stats.karma).color + '66', backgroundColor: getKarmaTier(stats.karma).color + '22' }]}>
+                    <Text style={[s.karmaTierText, { color: getKarmaTier(stats.karma).color }]}>
+                      {t(getKarmaTier(stats.karma).label)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <View style={s.anonBadge}>
+                <View style={[s.anonDot, {
+                  backgroundColor: profile.isAnonymous === false ? palette.accent : palette.success,
+                }]} />
+                <Text style={s.anonText}>
+                  {profile.isAnonymous === false ? t('profile.account') : t('profile.anonymous')} · {genderLabel}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* ── Stats ── */}
-        <View style={[s.statsCard, { marginHorizontal: spacing.lg }]}>
-          <View style={s.statItem}>
-            {stats === null
-              ? <ActivityIndicator color={palette.ink40} size="small" />
-              : <Text style={s.statValue}>{stats.questions}</Text>}
-            <Text style={s.statLabel}>{t('profile.statQuestions')}</Text>
-          </View>
-          <View style={s.statSep} />
-          <View style={s.statItem}>
-            {stats === null
-              ? <ActivityIndicator color={palette.ink40} size="small" />
-              : <Text style={s.statValue}>{stats.answers}</Text>}
-            <Text style={s.statLabel}>{t('profile.statAnswers')}</Text>
-          </View>
-          <View style={s.statSep} />
-          <View style={s.statItem}>
-            {stats === null
-              ? <ActivityIndicator color={palette.ink40} size="small" />
-              : <Text style={s.statValue}>{stats.streak}</Text>}
-            <Text style={s.statLabel}>{t('profile.statStreak')}</Text>
-          </View>
-          <View style={s.statSep} />
-          <View style={s.statItem}>
-            {stats === null
-              ? <ActivityIndicator color={palette.ink40} size="small" />
-              : <Text style={s.statValue}>{stats.karma}</Text>}
-            <Text style={s.statLabel}>{t('profile.statKarma')}</Text>
+          <View style={s.heroDivider} />
+
+          <View style={s.statsRow}>
+            <View style={s.statItem}>
+              {stats === null
+                ? <ActivityIndicator color={palette.ink40} size="small" />
+                : <Text style={s.statValue}>{stats.questions}</Text>}
+              <Text style={s.statLabel}>{t('profile.statQuestions')}</Text>
+            </View>
+            <View style={s.statSep} />
+            <View style={s.statItem}>
+              {stats === null
+                ? <ActivityIndicator color={palette.ink40} size="small" />
+                : <Text style={s.statValue}>{stats.answers}</Text>}
+              <Text style={s.statLabel}>{t('profile.statAnswers')}</Text>
+            </View>
+            <View style={s.statSep} />
+            <View style={s.statItem}>
+              {stats === null
+                ? <ActivityIndicator color={palette.ink40} size="small" />
+                : <Text style={s.statValue}>{stats.streak}</Text>}
+              <Text style={s.statLabel}>{t('profile.statStreak')}</Text>
+            </View>
+            <View style={s.statSep} />
+            <View style={s.statItem}>
+              {stats === null
+                ? <ActivityIndicator color={palette.ink40} size="small" />
+                : <Text style={s.statValue}>{stats.karma}</Text>}
+              <Text style={s.statLabel}>{t('profile.statKarma')}</Text>
+            </View>
           </View>
         </View>
 
         {/* ── Aktivite ── */}
         <Section title={t('profile.sections.activity')}>
           <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>📋</Text>}
+            icon={<IconTimeline color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
             label={t('profile.rows.myQuestions')}
             onPress={() => navigation.navigate('Timeline')}
           />
           <Divider />
           <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>💬</Text>}
+            icon={<IconMessages color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
             label={t('profile.rows.myMessages')}
             onPress={() => navigation.navigate('Conversations')}
           />
           <Divider />
           <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>🏆</Text>}
+            icon={<IconTrophy color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
             label={t('leaderboard.title')}
             onPress={() => setShowLeaderboard(true)}
           />
@@ -379,7 +388,7 @@ export default function ProfileScreen() {
         {/* ── Tercihler ── */}
         <Section title={t('profile.sections.prefs')}>
           <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>🔔</Text>}
+            icon={<IconBell color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
             label={t('profile.rows.notifications')}
             rightNode={
               <Switch
@@ -392,69 +401,69 @@ export default function ProfileScreen() {
           />
           <Divider />
           <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>🌍</Text>}
+            icon={<IconGlobe color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
             label={t('profile.rows.language')}
             value={`${currentLang.flag}  ${currentLang.label}`}
             onPress={() => setShowLangPicker(true)}
           />
         </Section>
 
-        {/* ── Gizlilik & Güvenlik ── */}
-        <Section title={t('profile.sections.privacy')}>
+        {/* ── Destek & Yasal — nadiren dokunulan her şey tek, sessiz bir
+             bölümde: eskiden Gizlilik&Güvenlik + Uygulama diye ayrı iki kutu
+             halinde, aynı görsel ağırlıkta gösteriliyordu. Şimdi tek bölüm. ── */}
+        <Section title={t('profile.sections.support')}>
           <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>🔒</Text>}
-            label={t('profile.rows.privacy')}
-            onPress={() => Linking.openURL(LINKS.privacy)}
-          />
-          <Divider />
-          <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>📄</Text>}
-            label={t('profile.rows.terms')}
-            onPress={() => Linking.openURL(LINKS.terms)}
-          />
-          <Divider />
-          <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>🚫</Text>}
+            icon={<IconBlock color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
             label={t('moderation.blockedListTitle')}
             onPress={openBlocked}
           />
           <Divider />
           <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>📍</Text>}
-            label={t('profile.rows.location')}
-            value={t('profile.rows.locationValue')}
-          />
-        </Section>
-
-        {/* ── Uygulama ── */}
-        <Section title={t('profile.sections.app')}>
-          <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>💳</Text>}
-            label={t('profile.rows.manageSubscription')}
-            onPress={() => Linking.openURL(LINKS.manageSubscriptions)}
-          />
-          <Divider />
-          <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>⭐</Text>}
+            icon={<IconStar color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
             label={t('profile.rows.rateApp')}
             onPress={() => Linking.openURL(LINKS.rate)}
           />
           <Divider />
           <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>🐛</Text>}
+            icon={<IconBug color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
             label={t('profile.rows.bugReport')}
             onPress={() => Linking.openURL(`mailto:${LINKS.contactEmail}`)}
           />
           <Divider />
           <SettingRow
-            icon={<Text style={{ fontSize: 15 }}>ℹ️</Text>}
+            icon={<IconMapPin color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
+            label={t('profile.rows.location')}
+            value={t('profile.rows.locationValue')}
+          />
+          <Divider />
+          <SettingRow
+            icon={<IconLock color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
+            label={t('profile.rows.privacy')}
+            onPress={() => Linking.openURL(LINKS.privacy)}
+          />
+          <Divider />
+          <SettingRow
+            icon={<IconDocument color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
+            label={t('profile.rows.terms')}
+            onPress={() => Linking.openURL(LINKS.terms)}
+          />
+          <Divider />
+          <SettingRow
+            icon={<IconInfo color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
             label={t('profile.rows.version')}
             value={APP_VERSION}
           />
         </Section>
 
-        {/* ── Hesap ── */}
+        {/* ── Hesap — abonelik yönetimi buraya taşındı, hesap işlemleriyle
+             (çıkış/silme) aynı mantıksal grupta. ── */}
         <Section title={t('profile.sections.account')}>
+          <SettingRow
+            icon={<IconCard color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
+            label={t('profile.rows.manageSubscription')}
+            onPress={() => Linking.openURL(LINKS.manageSubscriptions)}
+          />
+          <Divider />
           {isAnonymous ? (
             <SettingRow
               icon={<IconSignOut color={palette.accent} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
@@ -571,6 +580,11 @@ const s = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: palette.ink70,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   headerTitle: {
     fontFamily: fontFamily.display,
     fontSize: fontSize.xl,
@@ -591,18 +605,27 @@ const s = StyleSheet.create({
     gap: 0,
   },
 
-  avatarCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
+  // Hero: identity + stats merged into one card (was two stacked boxes with
+  // their own borders/shadows — reads as "boxes within boxes" clutter).
+  heroCard: {
     marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
     backgroundColor: palette.ink80,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: palette.ink70,
     padding: spacing.lg,
     ...shadow.sm,
+  },
+  heroTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  heroDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: palette.ink70,
+    marginVertical: spacing.lg,
   },
   avatarMeta: { flex: 1, gap: 6 },
   nicknameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
@@ -634,16 +657,9 @@ const s = StyleSheet.create({
     color: palette.ink40,
   },
 
-  statsCard: {
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: palette.ink80,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: palette.ink70,
-    marginBottom: spacing.lg,
-    paddingVertical: spacing.lg,
-    ...shadow.sm,
   },
   statItem: {
     flex: 1,

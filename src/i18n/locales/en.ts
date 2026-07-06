@@ -205,6 +205,7 @@ const en = {
       prefs:     'Preferences',
       privacy:   'Privacy & Security',
       app:       'App',
+      support:   'Support & Legal',
       account:   'Account',
     },
     rows: {

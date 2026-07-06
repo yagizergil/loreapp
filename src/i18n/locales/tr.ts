@@ -205,6 +205,7 @@ const tr = {
       prefs:     'Tercihler',
       privacy:   'Gizlilik & Güvenlik',
       app:       'Uygulama',
+      support:   'Destek & Yasal',
       account:   'Hesap',
     },
     rows: {
