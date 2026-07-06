@@ -20,6 +20,8 @@ import {
 } from '../../lib/supabase';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import { SkeletonList } from '../../components/ui/SkeletonRow';
+import { SealMark, TYPE_SHADE } from '../../components/map/SealMark';
+import { IconChat } from '../../components/ui/Icons';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
@@ -52,7 +54,7 @@ function timeAgo(dateStr: string): string {
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
-function TimelineCard({
+const TimelineCard = React.memo(function TimelineCard({
   question,
   onPress,
 }: {
@@ -90,11 +92,7 @@ function TimelineCard({
         {/* Row 3: stats + CTA */}
         <View style={card.footer}>
           <View style={card.statRow}>
-            {/* Mini chat icon */}
-            <View style={card.chatIcon}>
-              <View style={card.chatBubble} />
-              <View style={card.chatTail} />
-            </View>
+            <IconChat color={palette.ink40} size={15} strokeWidth={1.8} />
             <Text style={card.statText}>
               {question.answer_count === 0
                 ? i18n.t('answers.emptyTitle')
@@ -112,20 +110,17 @@ function TimelineCard({
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
+// Was a hand-drawn placeholder (circle + "L" letter) standing in for the
+// brand's actual wax-seal mark instead of using it — replaced with the real
+// SealMark component, same one used on the map and Profile header.
 
 function EmptyState({ tab }: { tab: Tab }) {
   return (
     <View style={empty.root}>
-      <View style={empty.sealWrap}>
-        <View style={empty.sealOuter}>
-          <View style={empty.sealInner}>
-            <Text style={empty.sealL}>L</Text>
-          </View>
-        </View>
-      </View>
+      <SealMark size={48} shade={TYPE_SHADE.open} gid={`timelineEmpty-${tab}`} />
       <Text style={empty.title}>{i18n.t('timeline.emptyTitle')}</Text>
       <Text style={empty.body}>{i18n.t('timeline.emptyBody')}</Text>
     </View>
@@ -189,6 +184,17 @@ export default function TimelineScreen() {
   const data    = tab === 'mine' ? mine : answered;
   const loading = data === null;
 
+  const openAnswers = useCallback((question: Question) => {
+    navigation.navigate('Answers', { question, profileId: profile.id });
+  }, [navigation, profile.id]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: Question }) => (
+      <TimelineCard question={item} onPress={() => openAnswers(item)} />
+    ),
+    [openAnswers],
+  );
+
   return (
     <View style={styles.root}>
 
@@ -198,8 +204,7 @@ export default function TimelineScreen() {
           <Text style={styles.title}>{t('timeline.title')}</Text>
           <Text style={styles.subtitle}>{t('timeline.subtitle')}</Text>
         </View>
-        {/* Accent dot — brand mark */}
-        <View style={styles.brandDot} />
+        <SealMark size={26} shade={TYPE_SHADE.open} gid="timelineHeaderSeal" />
       </View>
 
       {/* ── Underline tabs ── */}
@@ -264,17 +269,7 @@ export default function TimelineScreen() {
               tintColor={palette.ink40}
             />
           }
-          renderItem={({ item }) => (
-            <TimelineCard
-              question={item}
-              onPress={() =>
-                navigation.navigate('Answers', {
-                  question: item,
-                  profileId: profile.id,
-                })
-              }
-            />
-          )}
+          renderItem={renderItem}
           ListEmptyComponent={<EmptyState tab={tab} />}
         />
       )}
@@ -310,14 +305,6 @@ const styles = StyleSheet.create({
     color:      palette.ink40,
     marginTop:  2,
   },
-  brandDot: {
-    width:        10,
-    height:       10,
-    borderRadius: 5,
-    backgroundColor: palette.accent,
-    marginBottom: 6,
-  },
-
   // Tabs
   tabRow: {
     flexDirection:   'row',
@@ -446,27 +433,6 @@ const card = StyleSheet.create({
     alignItems:    'center',
     gap:           7,
   },
-  chatIcon: {
-    width: 16, height: 14,
-  },
-  chatBubble: {
-    width: 14, height: 11,
-    borderRadius: 4,
-    borderWidth:  1.5,
-    borderColor:  palette.ink40,
-    position:     'absolute',
-    top: 0, left: 0,
-  },
-  chatTail: {
-    width:  5, height: 5,
-    borderBottomRightRadius: 4,
-    borderWidth: 1.5,
-    borderTopWidth: 0,
-    borderLeftWidth: 0,
-    borderColor: palette.ink40,
-    position:    'absolute',
-    bottom: 0, left: 3,
-  },
   statText: {
     fontFamily: fontFamily.body,
     fontSize:   fontSize.xs,
@@ -513,32 +479,6 @@ const empty = StyleSheet.create({
     marginTop:  spacing.xxl + 12,
     paddingHorizontal: spacing.xl,
     gap: spacing.md,
-  },
-  sealWrap: {
-    marginBottom: spacing.sm,
-  },
-  sealOuter: {
-    width:           64,
-    height:          64,
-    borderRadius:    32,
-    borderWidth:     2,
-    borderColor:     palette.ink60,
-    alignItems:      'center',
-    justifyContent:  'center',
-  },
-  sealInner: {
-    width:           44,
-    height:          44,
-    borderRadius:    22,
-    borderWidth:     1,
-    borderColor:     palette.ink60,
-    alignItems:      'center',
-    justifyContent:  'center',
-  },
-  sealL: {
-    fontFamily: fontFamily.display,
-    fontSize:   22,
-    color:      palette.ink60,
   },
   title: {
     fontFamily: fontFamily.displayMedium,
