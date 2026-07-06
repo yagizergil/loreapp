@@ -313,6 +313,8 @@ export default function PaywallScreen() {
         onPress={() => { track('paywall_dismissed', { trigger, experiment_variant: ctaVariant }); navigation.goBack(); }}
         activeOpacity={0.7}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        accessibilityRole="button"
+        accessibilityLabel={t('common.close')}
       >
         <View style={s.closeH} />
         <View style={s.closeV} />
@@ -380,6 +382,9 @@ export default function PaywallScreen() {
             activeOpacity={0.85}
             onPress={handleUpgrade}
             disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={ctaLabel}
+            accessibilityState={{ disabled: busy, busy }}
           >
             {busy
               ? <ActivityIndicator color={palette.ink90} />
