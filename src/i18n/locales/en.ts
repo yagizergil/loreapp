@@ -92,6 +92,8 @@ const en = {
     emptyBody:    'No questions nearby yet — be the first to ask one and get the conversation started.',
     emptyCta:     'Ask the first question',
     moreNearby:   '{{n}} more nearby — answer or ask to see them',
+    searchLabel:  'Search questions',
+    searchPlaceholder: 'Search nearby questions...',
   },
 
   // ─── Question Sheet (modal) ───────────────────────────────────────────────────

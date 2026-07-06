@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   StatusBar,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -14,7 +16,7 @@ import MapView, { MapStyleElement, Region, Circle } from 'react-native-maps';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { Question, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds, fetchRegionQuestionCount } from '../../lib/supabase';
+import { Question, QuestionType, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds, fetchRegionQuestionCount } from '../../lib/supabase';
 import { track } from '../../lib/analytics';
 import { useProfile } from '../../lib/ProfileContext';
 import { usePremium } from '../../lib/PremiumContext';
@@ -82,7 +84,10 @@ export default function MapScreen() {
     userLat:      userLocation?.lat,
     userLng:      userLocation?.lng,
   });
-  const [filter, setFilter] = useState<'all' | 'new'>('all');
+  type FilterKey = 'all' | 'new' | QuestionType;
+  const [filter, setFilter] = useState<FilterKey>('all');
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const moveMapTo = useCallback((r: Region, duration = 500) => {
     mapRef.current?.animateToRegion(r, duration);
@@ -111,13 +116,18 @@ export default function MapScreen() {
   // Memoized: this was previously recomputed on every render (including
   // unrelated ones like toggling the leaderboard sheet), which also broke
   // the memoization chain feeding spreadOffsets/visibleQuestions below.
-  const filteredQuestions = useMemo(() => (filter === 'all'
-    ? questions
-    : questions.filter((q) => getQuestionBadge(q) === filter)
-  )
-    .filter((q) => !blockedIds.has(q.author_id))
-    .filter((q) => q.author_id === profile.id || !answeredIds.has(q.id)),
-  [questions, filter, blockedIds, answeredIds, profile.id]);
+  const filteredQuestions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return questions
+      .filter((q) => {
+        if (filter === 'all') return true;
+        if (filter === 'new') return getQuestionBadge(q) === 'new';
+        return q.type === filter;
+      })
+      .filter((q) => !query || q.body.toLowerCase().includes(query))
+      .filter((q) => !blockedIds.has(q.author_id))
+      .filter((q) => q.author_id === profile.id || !answeredIds.has(q.id));
+  }, [questions, filter, searchQuery, blockedIds, answeredIds, profile.id]);
 
   // Compute stable spread offsets for same-coordinate pins (computed once per questions array,
   // not per zoom/region change — so pins never jump or move).
@@ -436,6 +446,18 @@ export default function MapScreen() {
             <TouchableOpacity
               style={styles.leaderboardButton}
               activeOpacity={0.8}
+              onPress={() => {
+                setShowSearch((v) => !v);
+                if (showSearch) setSearchQuery('');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t('map.searchLabel')}
+            >
+              <Text style={styles.leaderboardEmoji}>🔍</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.leaderboardButton}
+              activeOpacity={0.8}
               onPress={() => setShowLeaderboard(true)}
               accessibilityRole="button"
               accessibilityLabel={t('leaderboard.title')}
@@ -468,12 +490,47 @@ export default function MapScreen() {
         />
       )}
 
-      {/* Filter pills */}
-      <View style={[styles.filterBar, { top: (Platform.OS === 'ios' ? 50 : 28) + 68 }]}>
+      {/* Search bar — toggled by the top-bar search icon. Filters the same
+          in-memory question set client-side (no extra network round trip). */}
+      {showSearch && (
+        <View style={[styles.searchBarWrapper, { top: (Platform.OS === 'ios' ? 50 : 28) + 68 }]}>
+          <BlurView intensity={60} tint="dark" style={styles.searchBar}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('map.searchPlaceholder')}
+              placeholderTextColor={palette.ink40}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={10}>
+                <Text style={styles.searchClear}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </BlurView>
+        </View>
+      )}
+
+      {/* Filter pills — question type chips reuse the same labels as
+          Timeline (questionType.*) so the vocabulary stays consistent
+          across the app. Horizontally scrollable since 5 chips no longer
+          fit comfortably on narrow phones. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={[styles.filterBar, { top: (Platform.OS === 'ios' ? 50 : 28) + 68 + (showSearch ? 54 : 0) }]}
+        contentContainerStyle={styles.filterBarContent}
+      >
         {([
-          { key: 'all', label: t('map.filterAll') },
-          { key: 'new', label: t('map.filterNew') },
-        ] as { key: typeof filter; label: string }[]).map(({ key, label }) => (
+          { key: 'all',    label: t('map.filterAll') },
+          { key: 'new',    label: t('map.filterNew') },
+          { key: 'vote',   label: t('questionType.vote') },
+          { key: 'choice', label: t('questionType.choice') },
+          { key: 'open',   label: t('questionType.open') },
+        ] as { key: FilterKey; label: string }[]).map(({ key, label }) => (
           <TouchableOpacity
             key={key}
             style={[styles.filterPill, filter === key && styles.filterPillActive]}
@@ -485,7 +542,7 @@ export default function MapScreen() {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {/* Bottom gradient fade */}
       <LinearGradient
@@ -569,7 +626,7 @@ export default function MapScreen() {
           questions than the current visible cap, so users know answering
           or asking reveals more instead of assuming that's all there is. */}
       {moreNearbyCount > 0 && !selectedQuestion && !showAsk && (
-        <View style={[styles.moreNearbyPill, { top: (Platform.OS === 'ios' ? 50 : 28) + 116 }]} pointerEvents="none">
+        <View style={[styles.moreNearbyPill, { top: (Platform.OS === 'ios' ? 50 : 28) + 116 + (showSearch ? 54 : 0) }]} pointerEvents="none">
           <Text style={styles.moreNearbyText}>{t('map.moreNearby', { n: moreNearbyCount })}</Text>
         </View>
       )}
@@ -653,9 +710,43 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    flexDirection: 'row',
+  },
+  filterBarContent: {
+    flexGrow: 1,
     justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
     gap: spacing.xs,
+  },
+  searchBarWrapper: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    ...shadow.sm,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.base,
+    paddingVertical: 10,
+  },
+  searchIcon: {
+    fontSize: 14,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: fontFamily.body,
+    fontSize: fontSize.sm,
+    color: palette.ink00,
+    padding: 0,
+  },
+  searchClear: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.sm,
+    color: palette.ink40,
+    paddingHorizontal: 4,
   },
   filterPill: {
     paddingHorizontal: spacing.md,
