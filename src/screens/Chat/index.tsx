@@ -17,14 +17,54 @@ import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/toke
 import { contentWidth } from '../../theme/responsive';
 import { RootStackParamList } from '../../navigation';
 import Avatar from '../../components/ui/Avatar';
+import { IconChevronLeft, IconMore, IconSend } from '../../components/ui/Icons';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 
 type ChatRoute = RouteProp<RootStackParamList, 'Chat'>;
 
+// Was hardcoded to 'tr-TR' regardless of the app's actual selected language
+// (Profile has an English/Turkish switcher) — an English-language user would
+// still see Turkish-formatted timestamps.
 function formatTime(dateStr: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  const locale = i18n.language?.startsWith('tr') ? 'tr-TR' : 'en-US';
+  return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 }
+
+// Extracted + memoized: previously an inline renderItem function rebuilt on
+// every render (every keystroke in the composer, every state update), which
+// re-rendered every visible bubble each time. Now only re-renders when this
+// specific message's own props actually change.
+const MessageBubble = React.memo(function MessageBubble({
+  message, isMine, showTime, otherAvatar, otherGender,
+}: {
+  message: Message;
+  isMine: boolean;
+  showTime: boolean;
+  otherAvatar: string;
+  otherGender: 'male' | 'female' | 'other' | null;
+}) {
+  return (
+    <View>
+      {showTime && (
+        <Text style={styles.timeStamp}>{formatTime(message.created_at)}</Text>
+      )}
+      <View style={[styles.msgRow, isMine && styles.msgRowMine]}>
+        {!isMine && (
+          <View style={styles.msgAvatar}>
+            <Avatar avatarKey={otherAvatar} gender={otherGender} size={28} ring={false} />
+          </View>
+        )}
+        <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}>
+          <Text style={[styles.bubbleText, isMine && styles.bubbleTextMine]}>
+            {message.body}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+});
 
 export default function ChatScreen() {
   const profile    = useProfile();
@@ -128,31 +168,21 @@ export default function ChatScreen() {
     }
   }
 
-  function renderMessage({ item, index }: { item: Message; index: number }) {
+  const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMine = item.sender_id === profile.id;
     const prev   = messages[index - 1];
     const showTime = !prev || new Date(item.created_at).getTime() - new Date(prev.created_at).getTime() > 5 * 60 * 1000;
-
     return (
-      <View>
-        {showTime && (
-          <Text style={styles.timeStamp}>{formatTime(item.created_at)}</Text>
-        )}
-        <View style={[styles.msgRow, isMine && styles.msgRowMine]}>
-          {!isMine && (
-            <View style={styles.msgAvatar}>
-              <Avatar avatarKey={otherAvatar} gender={otherGender} size={28} ring={false} />
-            </View>
-          )}
-          <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}>
-            <Text style={[styles.bubbleText, isMine && styles.bubbleTextMine]}>
-              {item.body}
-            </Text>
-          </View>
-        </View>
-      </View>
+      <MessageBubble
+        message={item}
+        isMine={isMine}
+        showTime={showTime}
+        otherAvatar={otherAvatar}
+        otherGender={otherGender}
+      />
     );
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, profile.id, otherAvatar, otherGender]);
 
   return (
     <KeyboardAvoidingView
@@ -162,8 +192,15 @@ export default function ChatScreen() {
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <View style={styles.chevron} />
+        <TouchableOpacity
+          style={styles.back}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+        >
+          <IconChevronLeft color={palette.ink20} size={22} strokeWidth={2.2} />
         </TouchableOpacity>
 
         <Avatar avatarKey={otherAvatar} gender={otherGender} size={40} ring />
@@ -175,7 +212,9 @@ export default function ChatScreen() {
 
         <TouchableOpacity
           style={styles.back}
-          hitSlop={10}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t('chat.moreOptions')}
           onPress={() =>
             moderationMenu({
               reporterId: profile.id,
@@ -185,7 +224,7 @@ export default function ChatScreen() {
             })
           }
         >
-          <Text style={{ color: palette.ink40, fontSize: 22, lineHeight: 22 }}>⋯</Text>
+          <IconMore color={palette.ink40} size={20} />
         </TouchableOpacity>
       </View>
 
@@ -247,11 +286,13 @@ export default function ChatScreen() {
           onPress={handleSend}
           activeOpacity={0.8}
           disabled={!input.trim() || sending}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.send')}
         >
           {sending ? (
             <ActivityIndicator color={palette.white} size="small" />
           ) : (
-            <View style={styles.sendArrow} />
+            <IconSend color={palette.white} size={18} />
           )}
         </TouchableOpacity>
       </View>
@@ -272,13 +313,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   back: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  chevron: {
-    width: 10, height: 10,
-    borderLeftWidth: 2, borderBottomWidth: 2,
-    borderColor: palette.ink20,
-    transform: [{ rotate: '45deg' }],
-    marginLeft: 4,
-  },
   headerMeta: { flex: 1 },
   headerName: {
     fontFamily: fontFamily.bodySemiBold,
@@ -390,20 +424,13 @@ const styles = StyleSheet.create({
     borderColor: palette.ink60,
   },
   sendBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: palette.accent,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 2,
   },
   sendBtnDisabled: { opacity: 0.4 },
-  sendArrow: {
-    width: 0, height: 0,
-    borderTopWidth: 7, borderBottomWidth: 7, borderLeftWidth: 11,
-    borderTopColor: 'transparent', borderBottomColor: 'transparent',
-    borderLeftColor: palette.white,
-    marginLeft: 3,
-  },
 });

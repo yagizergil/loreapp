@@ -176,6 +176,33 @@ export function IconSearch({ color = '#fff', size = 24, strokeWidth = 1.8 }: Ico
   );
 }
 
+// ─── More / kebab menu ─────────────────────────────────────────────────────────
+export function IconMore({ color = '#fff', size = 24 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="5"  cy="12" r="1.8" fill={color} />
+      <Circle cx="12" cy="12" r="1.8" fill={color} />
+      <Circle cx="19" cy="12" r="1.8" fill={color} />
+    </Svg>
+  );
+}
+
+// ─── Send (chat composer) ──────────────────────────────────────────────────────
+export function IconSend({ color = '#fff', size = 24, strokeWidth = 2 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 12l16-8-6 8 6 8-16-8z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+        fill={color}
+        fillOpacity={0.15}
+      />
+    </Svg>
+  );
+}
+
 // ─── Locate me / My location ──────────────────────────────────────────────────
 // Classic crosshair: ring + center dot + four ticks. Reads instantly as
 // "center on my location" and matches the app's stroke-icon language.

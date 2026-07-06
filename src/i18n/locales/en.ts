@@ -167,6 +167,7 @@ const en = {
     errorSend:          'Message failed',
     errorRetry:         'Please try again.',
     retry:              'Try Again',
+    moreOptions:        'More options',
   },
 
   // ─── Conversations screen ─────────────────────────────────────────────────────

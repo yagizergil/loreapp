@@ -167,6 +167,7 @@ const tr = {
     errorSend:          'Mesaj gönderilemedi',
     errorRetry:         'Lütfen tekrar dene.',
     retry:              'Tekrar Dene',
+    moreOptions:        'Diğer seçenekler',
   },
 
   // ─── Conversations screen ─────────────────────────────────────────────────────
