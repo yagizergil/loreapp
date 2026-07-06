@@ -16,7 +16,7 @@ import MapView, { MapStyleElement, Region, Circle } from 'react-native-maps';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { Question, QuestionType, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds, fetchRegionQuestionCount } from '../../lib/supabase';
+import { Question, QuestionType, AuthorReputation, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds, fetchRegionQuestionCount, fetchAuthorKarma } from '../../lib/supabase';
 import { track } from '../../lib/analytics';
 import { useProfile } from '../../lib/ProfileContext';
 import { usePremium } from '../../lib/PremiumContext';
@@ -24,6 +24,7 @@ import { useUnreadCounts } from '../../lib/UnreadCountsContext';
 import { mapAskEvent } from '../../lib/mapEvents';
 import { distanceKm, FREE_RADIUS_KM, PREMIUM_RADIUS_KM, MIN_NEARBY_QUESTIONS, MAX_NEARBY_QUESTIONS } from '../../lib/distance';
 import { getQuestionBadge, badgePriority } from '../../lib/questionBadge';
+import { getKarmaTier } from '../../lib/karma';
 import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { useNotifications } from '../../hooks/useNotifications';
 import {
@@ -74,6 +75,7 @@ export default function MapScreen() {
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [authorReputation, setAuthorReputation] = useState<Map<string, AuthorReputation>>(new Map());
   const { isPremium } = usePremium();
 
   const lastFetchCenterRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -176,6 +178,18 @@ export default function MapScreen() {
     [sortedQuestions, visibleCap],
   );
   const moreNearbyCount = Math.max(0, sortedQuestions.length - visibleCap);
+
+  // "Wax Seal Reputation" — batch-fetch karma/premium for just the authors
+  // currently rendered as pins (not the whole fetched set), so a dense area
+  // never turns into an N-request waterfall. Purely decorative: failures are
+  // silent, pins just render without the reputation ring.
+  useEffect(() => {
+    const authorIds = visibleQuestions.map((q) => q.author_id);
+    if (authorIds.length === 0) return;
+    fetchAuthorKarma(authorIds)
+      .then(setAuthorReputation)
+      .catch(() => {});
+  }, [visibleQuestions]);
 
   useEffect(() => {
     mapAskEvent.trigger = () => setShowAsk(true);
@@ -422,6 +436,15 @@ export default function MapScreen() {
           const mine     = q.author_id === profile.id;
           const viewed   = viewedIds.has(q.id);
           const coordOffset = spreadOffsets.get(q.id);
+          // Only 'trusted'/'topVoice' tiers earn a visible ring — showing
+          // one for every newcomer/regular author would just be map noise.
+          // Gated on the AUTHOR's premium status, mirroring the same
+          // premium-gated tier badge already shown on their own Profile.
+          const reputation = authorReputation.get(q.author_id);
+          const tier = reputation && reputation.isPremium ? getKarmaTier(reputation.karma) : null;
+          const reputationColor = tier && (tier.key === 'trusted' || tier.key === 'topVoice')
+            ? tier.color
+            : undefined;
           return (
             <QuestionPin
               key={q.id}
@@ -431,6 +454,7 @@ export default function MapScreen() {
               viewed={viewed}
               coordOffset={coordOffset}
               refreshKey={mapRefreshKey}
+              reputationColor={reputationColor}
               onPress={() => handlePinPress(q)}
             />
           );

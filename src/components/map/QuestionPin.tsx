@@ -37,6 +37,12 @@ interface Props {
   viewed?:      boolean;
   coordOffset?: { dLat: number; dLng: number };
   refreshKey?:  number; // increments when modal closes — forces a re-snapshot
+  /** "Wax Seal Reputation" — an extra outer ring in the author's karma-tier
+   *  color (see src/lib/karma.ts), only passed for premium authors who've
+   *  earned 'trusted' or above. Mirrors the same premium-gated tier badge
+   *  already shown on the author's own Profile screen — the ring is the
+   *  map's version of that earned status, not a new parallel system. */
+  reputationColor?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -52,6 +58,7 @@ export default function QuestionPin({
   viewed  = false,
   coordOffset,
   refreshKey = 0,
+  reputationColor,
 }: Props) {
   const mounted = useRef(true);
 
@@ -70,16 +77,19 @@ export default function QuestionPin({
   }, []);
 
   // ── State changes: re-snapshot for 220ms ──────────────────────────────────
-  const prevStateKey = useRef(`${mine}|${locked}|${viewed}`);
+  // reputationColor resolves asynchronously (a batch fetch after the pins
+  // already mounted), so it's included here — otherwise the reputation ring
+  // would be drawn but never re-snapshotted onto the frozen native marker.
+  const prevStateKey = useRef(`${mine}|${locked}|${viewed}|${reputationColor ?? ''}`);
   useEffect(() => {
-    const next = `${mine}|${locked}|${viewed}`;
+    const next = `${mine}|${locked}|${viewed}|${reputationColor ?? ''}`;
     if (prevStateKey.current === next) return;
     prevStateKey.current = next;
     if (!mounted.current) return;
     setTracks(true);
     const t = setTimeout(() => { if (mounted.current) setTracks(false); }, 220);
     return () => clearTimeout(t);
-  }, [mine, locked, viewed]);
+  }, [mine, locked, viewed, reputationColor]);
 
   // ── Modal-close refresh: iOS invalidates the marker layer cache on modal
   //    dismiss. Re-enable tracking for 400ms so the map can re-snapshot.
@@ -167,6 +177,18 @@ export default function QuestionPin({
             height:       SIZE + 8,
             borderRadius: (SIZE + 8) / 2,
             borderColor:  shade.mid + '55',
+          }]} />
+        )}
+
+        {/* Wax Seal Reputation ring — sits outside the other two so a
+            locked or hot/popular pin can still show it at the same time. */}
+        {reputationColor && (
+          <View style={[styles.ring, {
+            width:        SIZE + 12,
+            height:       SIZE + 12,
+            borderRadius: (SIZE + 12) / 2,
+            borderWidth:  2,
+            borderColor:  reputationColor,
           }]} />
         )}
 

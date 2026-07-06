@@ -542,6 +542,24 @@ export async function fetchUserStats(
   };
 }
 
+export interface AuthorReputation {
+  karma: number;
+  isPremium: boolean;
+}
+
+/** Batch karma + premium lookup for map pin rendering — one round trip for
+ *  every visible pin's author instead of calling fetchUserStats per author. */
+export async function fetchAuthorKarma(
+  authorIds: string[],
+): Promise<Map<string, AuthorReputation>> {
+  const unique = [...new Set(authorIds)];
+  if (unique.length === 0) return new Map();
+  const { data, error } = await supabase.rpc('batch_author_karma', { p_author_ids: unique });
+  if (error) throw error;
+  const rows = (data ?? []) as { author_id: string; karma: number; is_premium: boolean }[];
+  return new Map(rows.map((r) => [r.author_id, { karma: r.karma, isPremium: r.is_premium }]));
+}
+
 // ─── Delete own content (Guideline 1.2: immediate post removal) ──────────────
 
 /** Permanently delete the current user's own question (and its answers). */
