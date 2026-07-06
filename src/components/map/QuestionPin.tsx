@@ -26,7 +26,13 @@ import { SealHalf, TYPE_SHADE, MINE_SHADE, FALLBACK_SHADE } from './SealMark';
 
 interface Props {
   question:     Question;
-  onPress:      () => void;
+  /** Takes the question so the Map screen can pass one stable function
+   *  reference for every pin (`onPress={handlePinPress}`) instead of a new
+   *  `() => handlePinPress(q)` closure per pin per render — the latter
+   *  defeated React.memo below and forced every visible pin to re-render
+   *  on any unrelated Map state change (typing in search, toggling the
+   *  leaderboard, etc). */
+  onPress:      (question: Question) => void;
   zoom?:        number; // kept for API compat but pin size is now fixed
   /** When this pin represents a cluster, the total number of questions
    *  grouped into it — shown as a numeric badge, not just a decorative
@@ -50,7 +56,7 @@ interface Props {
 const PIN_SIZE      = 30; // fixed — no zoom dependence, eliminates mass-retrack on pinch
 const PIN_SIZE_LG   = 35; // hot / popular / new
 
-export default function QuestionPin({
+function QuestionPin({
   question, onPress,
   extraCount = 0,
   locked  = false,
@@ -106,8 +112,8 @@ export default function QuestionPin({
   // ── Press ─────────────────────────────────────────────────────────────────
   const handlePress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    onPress();
-  }, [onPress]);
+    onPress(question);
+  }, [onPress, question]);
 
   // ── Visual state ──────────────────────────────────────────────────────────
   const badge    = mine ? null : getQuestionBadge(question);
@@ -196,6 +202,12 @@ export default function QuestionPin({
     </Marker>
   );
 }
+
+// Memoized: with a stable `onPress` reference from the Map screen (see the
+// prop doc above), this bails out on any unrelated Map re-render (search
+// typing, filter/leaderboard toggles) instead of recreating every visible
+// pin's Marker subtree and restarting its tracksViewChanges timers.
+export default React.memo(QuestionPin);
 
 const styles = StyleSheet.create({
   wrap: {

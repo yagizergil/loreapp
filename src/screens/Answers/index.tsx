@@ -134,16 +134,25 @@ const pb = StyleSheet.create({
   pct: { fontFamily: fontFamily.bodySemiBold, fontSize: fontSize.sm, color: palette.ink40, minWidth: 38, textAlign: 'right' },
 });
 
-function PollResults({
+// Memoized: a popular vote question can accumulate hundreds/thousands of
+// answer rows, and this tally used to recompute by iterating the full
+// `answers` array on every Answers-screen render (including unrelated ones,
+// e.g. an upvote tap elsewhere on the same screen) — real synchronous work
+// scaling with vote count, now only recomputed when the data actually changes.
+const PollResults = React.memo(function PollResults({
   question, answers, myChoice, color,
 }: { question: Question; answers: Answer[]; myChoice: string | null; color: string }) {
   const options: PollOption[] = question.options ?? [];
   const revealed = myChoice !== null;
-  const liveCounts: Record<string, number> = {};
-  answers.forEach((a) => { if (a.choice) liveCounts[a.choice] = (liveCounts[a.choice] ?? 0) + 1; });
-  const totalVotes = Object.values(liveCounts).reduce((s, c) => s + c, 0);
-  const merged = options.map((o) => ({ label: o.label, count: liveCounts[o.label] ?? o.count }));
-  const maxCount = Math.max(...merged.map((o) => o.count), 0);
+  const { merged, totalVotes, maxCount } = useMemo(() => {
+    const liveCounts: Record<string, number> = {};
+    answers.forEach((a) => { if (a.choice) liveCounts[a.choice] = (liveCounts[a.choice] ?? 0) + 1; });
+    const total = Object.values(liveCounts).reduce((s, c) => s + c, 0);
+    const mergedOptions = options.map((o) => ({ label: o.label, count: liveCounts[o.label] ?? o.count }));
+    const max = Math.max(...mergedOptions.map((o) => o.count), 0);
+    return { merged: mergedOptions, totalVotes: total, maxCount: max };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, question.options]);
   return (
     <View style={poll.wrap}>
       {merged.map((opt) => (
@@ -157,7 +166,7 @@ function PollResults({
       {revealed && <Text style={poll.total}>{i18n.t('sheet.votesCollected', { n: totalVotes })}</Text>}
     </View>
   );
-}
+});
 
 const poll = StyleSheet.create({
   wrap: { paddingHorizontal: spacing.lg, paddingBottom: spacing.base },
@@ -222,9 +231,7 @@ const op = StyleSheet.create({
 
 // ─── Answer card (open type) ──────────────────────────────────────────────────
 
-const AnswerCard = React.memo(function AnswerCard({
-  answer, author, isOwn, upvoted, onUpvote, onMessage, onModerate, onDelete,
-}: {
+interface AnswerCardProps {
   answer:    Answer;
   author?:   Profile;
   isOwn:     boolean;
@@ -233,7 +240,30 @@ const AnswerCard = React.memo(function AnswerCard({
   onMessage?: () => void;
   onModerate?: () => void;
   onDelete?: () => void;
-}) {
+}
+
+// Custom comparator: `renderAnswerItem` below depends on `upvotedIds`, so its
+// identity (and the inline onUpvote/onMessage/etc closures it creates) changes
+// on every single upvote toggle — without this, plain React.memo would treat
+// every visible row's callback props as "changed" and re-render the entire
+// window on one tap. Callback identity doesn't matter for what's rendered
+// (they always invoke the same logic for this answer's id), so only the data
+// props that actually affect output are compared.
+function answerCardPropsEqual(prev: AnswerCardProps, next: AnswerCardProps): boolean {
+  return (
+    prev.answer === next.answer &&
+    prev.author === next.author &&
+    prev.isOwn === next.isOwn &&
+    prev.upvoted === next.upvoted &&
+    !!prev.onMessage === !!next.onMessage &&
+    !!prev.onModerate === !!next.onModerate &&
+    !!prev.onDelete === !!next.onDelete
+  );
+}
+
+const AnswerCard = React.memo(function AnswerCard({
+  answer, author, isOwn, upvoted, onUpvote, onMessage, onModerate, onDelete,
+}: AnswerCardProps) {
   const scale     = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -312,7 +342,7 @@ const AnswerCard = React.memo(function AnswerCard({
       </View>
     </View>
   );
-});
+}, answerCardPropsEqual);
 
 const ac = StyleSheet.create({
   root: {

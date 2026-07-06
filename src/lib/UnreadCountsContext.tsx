@@ -14,7 +14,7 @@
  */
 
 import React, {
-  createContext, useContext, useEffect, useRef, useState, useCallback,
+  createContext, useContext, useEffect, useRef, useState, useCallback, useMemo,
 } from 'react';
 import {
   countUnreadNotifications,
@@ -113,8 +113,16 @@ export function UnreadCountsProvider({
       .catch(() => {});
   }, [userId]);
 
+  // Memoized: an inline object literal here would be a new reference every
+  // provider render, forcing every consumer (Map's bell badge, tab bar, etc.)
+  // to re-render even when the actual counts/handlers haven't changed.
+  const value = useMemo(
+    () => ({ notifCount, messageCount, markNotifsRead, markMessagesRead }),
+    [notifCount, messageCount, markNotifsRead, markMessagesRead],
+  );
+
   return (
-    <Ctx.Provider value={{ notifCount, messageCount, markNotifsRead, markMessagesRead }}>
+    <Ctx.Provider value={value}>
       {children}
     </Ctx.Provider>
   );

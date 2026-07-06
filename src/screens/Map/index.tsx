@@ -194,12 +194,25 @@ export default function MapScreen() {
   // currently rendered as pins (not the whole fetched set), so a dense area
   // never turns into an N-request waterfall. Purely decorative: failures are
   // silent, pins just render without the reputation ring.
+  //
+  // visibleCap grows by 1 on every answer/ask, so `visibleQuestions` gets a
+  // new array reference constantly — only fetch authors not already resolved
+  // (tracked via a ref, since authorReputation itself can't be a dep here
+  // without re-triggering on its own update) instead of re-fetching the
+  // entire currently-visible set on every single-pin reveal.
+  const fetchedAuthorIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const authorIds = visibleQuestions.map((q) => q.author_id);
-    if (authorIds.length === 0) return;
-    fetchAuthorKarma(authorIds)
-      .then(setAuthorReputation)
-      .catch(() => {});
+    const newAuthorIds = visibleQuestions
+      .map((q) => q.author_id)
+      .filter((id) => !fetchedAuthorIdsRef.current.has(id));
+    if (newAuthorIds.length === 0) return;
+    newAuthorIds.forEach((id) => fetchedAuthorIdsRef.current.add(id));
+    fetchAuthorKarma(newAuthorIds)
+      .then((fetched) => setAuthorReputation((prev) => new Map([...prev, ...fetched])))
+      .catch(() => {
+        // Roll back so a transient failure doesn't permanently skip these authors.
+        newAuthorIds.forEach((id) => fetchedAuthorIdsRef.current.delete(id));
+      });
   }, [visibleQuestions]);
 
   useEffect(() => {
@@ -467,7 +480,7 @@ export default function MapScreen() {
               coordOffset={coordOffset}
               refreshKey={mapRefreshKey}
               reputationColor={reputationColor}
-              onPress={() => handlePinPress(q)}
+              onPress={handlePinPress}
             />
           );
         })}

@@ -34,6 +34,45 @@ interface ConvItem {
   unreadCount: number;
 }
 
+// Memoized + extracted so FlatList's renderItem can stay a stable reference
+// (see ConversationsScreen below) — otherwise every row was an inline
+// closure re-created on each render, and typed re-renders (e.g. from
+// useFocusEffect refetches) rebuilt the entire visible row tree instead of
+// bailing out for unchanged conversations.
+const ConversationRow = React.memo(function ConversationRow({
+  item, onPress,
+}: { item: ConvItem; onPress: (item: ConvItem) => void }) {
+  return (
+    <TouchableOpacity
+      style={styles.row}
+      activeOpacity={0.75}
+      onPress={() => onPress(item)}
+    >
+      <Avatar avatarKey={item.other.avatar} gender={item.other.gender} size={50} ring />
+
+      <View style={styles.rowBody}>
+        <View style={styles.rowTop}>
+          <Text style={[styles.name, item.unreadCount > 0 && styles.nameUnread]}>{item.other.nickname}</Text>
+          <Text style={[styles.time, item.unreadCount > 0 && styles.timeUnread]}>{timeAgo(item.lastMessageTime)}</Text>
+        </View>
+        <View style={styles.previewRow}>
+          <Text
+            style={[styles.preview, item.unreadCount > 0 && styles.previewUnread]}
+            numberOfLines={1}
+          >
+            {item.lastMessageBody || '—'}
+          </Text>
+          {item.unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{item.unreadCount > 9 ? '9+' : item.unreadCount}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
 export default function ConversationsScreen() {
   const profile    = useProfile();
   const navigation = useNavigation<any>();
@@ -76,7 +115,7 @@ export default function ConversationsScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  function openChat(item: ConvItem) {
+  const openChat = useCallback((item: ConvItem) => {
     navigation.getParent()?.navigate('Chat', {
       conversationId: item.conversationId,
       otherUserId:    item.other.id,
@@ -84,7 +123,12 @@ export default function ConversationsScreen() {
       otherAvatar:    item.other.avatar,
       otherGender:    item.other.gender,
     });
-  }
+  }, [navigation]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: ConvItem }) => <ConversationRow item={item} onPress={openChat} />,
+    [openChat],
+  );
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -113,37 +157,7 @@ export default function ConversationsScreen() {
           keyExtractor={(i) => i.conversationId}
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
-          renderItem={({ item }) => {
-            return (
-              <TouchableOpacity
-                style={styles.row}
-                activeOpacity={0.75}
-                onPress={() => openChat(item)}
-              >
-                <Avatar avatarKey={item.other.avatar} gender={item.other.gender} size={50} ring />
-
-                <View style={styles.rowBody}>
-                  <View style={styles.rowTop}>
-                    <Text style={[styles.name, item.unreadCount > 0 && styles.nameUnread]}>{item.other.nickname}</Text>
-                    <Text style={[styles.time, item.unreadCount > 0 && styles.timeUnread]}>{timeAgo(item.lastMessageTime)}</Text>
-                  </View>
-                  <View style={styles.previewRow}>
-                    <Text
-                      style={[styles.preview, item.unreadCount > 0 && styles.previewUnread]}
-                      numberOfLines={1}
-                    >
-                      {item.lastMessageBody || '—'}
-                    </Text>
-                    {item.unreadCount > 0 && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{item.unreadCount > 9 ? '9+' : item.unreadCount}</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          }}
+          renderItem={renderItem}
         />
       )}
     </View>

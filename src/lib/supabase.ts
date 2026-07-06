@@ -451,7 +451,8 @@ export async function fetchUserAnsweredQuestionIds(authorId: string): Promise<st
   const { data, error } = await supabase
     .from('answers')
     .select('question_id')
-    .eq('author_id', authorId);
+    .eq('author_id', authorId)
+    .order('created_at', { ascending: false });
   if (error) throw error;
   return (data as { question_id: string }[]).map((r) => r.question_id);
 }
@@ -459,12 +460,18 @@ export async function fetchUserAnsweredQuestionIds(authorId: string): Promise<st
 // ─── Timeline ────────────────────────────────────────────────────────────────
 
 /** Questions the user authored, newest first. */
+// Timeline shows these newest-first and isn't paginated yet — a hard cap
+// keeps a long-time power user's history from becoming an unbounded fetch
+// that stalls JS-thread parsing/state-set on every screen focus.
+const MY_HISTORY_LIMIT = 200;
+
 export async function fetchMyQuestions(authorId: string): Promise<Question[]> {
   const { data, error } = await supabase
     .from('questions')
     .select('*')
     .eq('author_id', authorId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(MY_HISTORY_LIMIT);
   if (error) throw error;
   return data as Question[];
 }
@@ -473,7 +480,7 @@ export async function fetchMyQuestions(authorId: string): Promise<Question[]> {
 export async function fetchMyAnsweredQuestions(authorId: string): Promise<Question[]> {
   const ids = await fetchUserAnsweredQuestionIds(authorId);
   if (!ids.length) return [];
-  const uniqueIds = Array.from(new Set(ids));
+  const uniqueIds = Array.from(new Set(ids)).slice(0, MY_HISTORY_LIMIT);
   const { data, error } = await supabase
     .from('questions')
     .select('*')

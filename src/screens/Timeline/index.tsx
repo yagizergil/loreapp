@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -60,7 +60,10 @@ function TimelineCard({
   onPress: () => void;
 }) {
   const color = TYPE_COLOR[question.type] ?? palette.accent;
-  const typeLabels = TYPE_LABEL();
+  // Memoized: TYPE_LABEL() ran 3 i18n.t() lookups on every render of every
+  // visible row — cheap individually but pure waste at list scale since the
+  // labels only change if the user switches language mid-session.
+  const typeLabels = useMemo(() => TYPE_LABEL(), [i18n.language]);
 
   return (
     <TouchableOpacity
