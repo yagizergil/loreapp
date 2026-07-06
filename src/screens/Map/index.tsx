@@ -93,11 +93,12 @@ export default function MapScreen() {
   // cluster ids forcing Marker remounts) and, separately, left the map blank
   // on first load. Instead: show only a capped, optimized number of pins at
   // once so a dense area (60+ questions within a few km) never clutters or
-  // strains the eye, and grow that cap a little each time the user answers
-  // or asks a question — "answer to see more" — with an on-screen hint when
-  // more are waiting. No native marker-count churn, no crash surface.
+  // strains the eye, and grow that cap by exactly 1 each time the user
+  // answers or asks a question — a true 1-for-1 replacement, not a reward
+  // jump — with an on-screen hint when more are waiting. No native
+  // marker-count churn, no crash surface.
   const INITIAL_VISIBLE_PINS = 18;
-  const VISIBLE_PINS_INCREMENT = 6;
+  const VISIBLE_PINS_INCREMENT = 1;
   const [visibleCap, setVisibleCap] = useState(INITIAL_VISIBLE_PINS);
 
   const isLocked = useCallback((q: Question) => {
