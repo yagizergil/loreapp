@@ -38,7 +38,7 @@ import {
 } from '../../theme/tokens';
 import QuestionPin from '../../components/map/QuestionPin';
 import { SealMark, TYPE_SHADE } from '../../components/map/SealMark';
-import { IconBell, IconLocateMe } from '../../components/ui/Icons';
+import { IconBell, IconLocateMe, IconSearch, IconTrophy } from '../../components/ui/Icons';
 import QuestionSheet from '../../components/sheet/QuestionSheet';
 import AskQuestionModal from '../../components/sheet/AskQuestionModal';
 import LeaderboardSheet from '../../components/sheet/LeaderboardSheet';
@@ -502,7 +502,7 @@ export default function MapScreen() {
               accessibilityRole="button"
               accessibilityLabel={t('map.searchLabel')}
             >
-              <Text style={styles.leaderboardEmoji}>🔍</Text>
+              <IconSearch color={palette.ink10} size={19} strokeWidth={1.9} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.leaderboardButton}
@@ -511,12 +511,14 @@ export default function MapScreen() {
               accessibilityRole="button"
               accessibilityLabel={t('leaderboard.title')}
             >
-              <Text style={styles.leaderboardEmoji}>🏆</Text>
+              <IconTrophy color={palette.ink10} size={19} strokeWidth={1.9} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.bellButton}
               activeOpacity={0.8}
               onPress={() => navigation.navigate('Notifications')}
+              accessibilityRole="button"
+              accessibilityLabel={t('nav.notifications')}
             >
               <IconBell color={palette.ink10} size={20} strokeWidth={2} />
               {notifCount > 0 && (
@@ -619,6 +621,8 @@ export default function MapScreen() {
             style={styles.secondaryBtn}
             activeOpacity={0.8}
             onPress={handleGoToMyLocation}
+            accessibilityRole="button"
+            accessibilityLabel={t('map.locateMe')}
           >
             <IconLocateMe color={palette.ink00} size={22} strokeWidth={1.8} />
           </TouchableOpacity>
@@ -748,9 +752,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
+  // 44x44 meets Apple HIG / Material's minimum touch-target size — these were
+  // 40x40 before, just under the threshold the ui-ux-pro-max skill flags as
+  // Critical severity for icon-only buttons.
   leaderboardButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: radius.full,
     backgroundColor: palette.ink80 + 'CC',
     alignItems: 'center',
@@ -758,10 +765,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: palette.ink60,
   },
-  leaderboardEmoji: { fontSize: 17 },
   bellButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: radius.full,
     backgroundColor: palette.ink80 + 'CC',
     alignItems: 'center',

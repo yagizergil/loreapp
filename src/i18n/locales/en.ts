@@ -93,6 +93,7 @@ const en = {
     emptyCta:     'Ask the first question',
     moreNearby:   '{{n}} more nearby — answer or ask to see them',
     searchLabel:  'Search questions',
+    locateMe:     'Center on my location',
     searchPlaceholder: 'Search nearby questions...',
     caughtUpTitle: "You're all caught up",
     caughtUpBody: "You've answered everyone reachable nearby. We'll notify you the moment someone new posts.",

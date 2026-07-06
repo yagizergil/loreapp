@@ -166,6 +166,16 @@ export function IconPlus({ color = '#fff', size = 24, strokeWidth = 2.5 }: IconP
   );
 }
 
+// ─── Search ───────────────────────────────────────────────────────────────────
+export function IconSearch({ color = '#fff', size = 24, strokeWidth = 1.8 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="10.5" cy="10.5" r="6.5" stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M20 20l-4.8-4.8" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 // ─── Locate me / My location ──────────────────────────────────────────────────
 // Classic crosshair: ring + center dot + four ticks. Reads instantly as
 // "center on my location" and matches the app's stroke-icon language.

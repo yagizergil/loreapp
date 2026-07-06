@@ -93,6 +93,7 @@ const tr = {
     emptyCta:     'İlk soruyu sor',
     moreNearby:   'Yakında {{n}} soru daha var — cevapla veya soru sor, gelsinler',
     searchLabel:  'Soru ara',
+    locateMe:     'Konumuma odaklan',
     searchPlaceholder: 'Yakındaki sorularda ara...',
     caughtUpTitle: 'Herkese cevap verdin',
     caughtUpBody: 'Yakınında ulaşabildiğin herkese cevap verdin. Biri yeni bir soru sorduğunda sana haber vereceğiz.',
