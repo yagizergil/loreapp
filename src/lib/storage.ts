@@ -11,6 +11,9 @@ export interface LocalProfile {
   gender: Gender;
   avatarUrl?: string | null;
   isAnonymous?: boolean;
+  /** Version of the EULA / Community Rules this profile last agreed to.
+   *  See src/lib/eula.ts (Guideline 1.2 re-consent gate). */
+  eulaVersion?: number;
 }
 
 export async function getLocalProfile(): Promise<LocalProfile | null> {

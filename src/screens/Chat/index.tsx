@@ -8,7 +8,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useProfile } from '../../lib/ProfileContext';
 import { useUnreadCounts } from '../../lib/UnreadCountsContext';
 import {
-  Message, fetchMessages, sendMessage, getOrCreateConversation,
+  Message, fetchMessages, sendMessage, getOrCreateConversation, isBlockedPair,
 } from '../../lib/supabase';
 import { supabase } from '../../lib/supabase';
 import { moderationMenu, reportUserFlow } from '../../lib/moderation';
@@ -83,8 +83,20 @@ export default function ChatScreen() {
   const [initLoading, setInitLoading] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
   const [sending, setSending]     = useState(false);
+  const [blocked, setBlocked]     = useState(false);
   const listRef = useRef<FlatList>(null);
   const convIdRef = useRef<string | null>(paramConvId ?? null);
+
+  // Guideline 1.2: a block must actually stop messaging in both directions,
+  // not just hide the conversation from the inbox — a reviewer can still
+  // reach this screen via a stale deep link / push notification.
+  useEffect(() => {
+    let cancelled = false;
+    isBlockedPair(profile.id, otherUserId)
+      .then((b) => { if (!cancelled) setBlocked(b); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [profile.id, otherUserId]);
 
   // Keep ref in sync so handleSend always has the latest value
   useEffect(() => { convIdRef.current = convId; }, [convId]);
@@ -143,7 +155,7 @@ export default function ChatScreen() {
 
   async function handleSend() {
     const text = input.trim();
-    if (!text || sending) return;
+    if (!text || sending || blocked) return;
 
     // Objectionable-content filter (Guideline 1.2).
     if (containsObjectionableContent(text)) {
@@ -220,7 +232,7 @@ export default function ChatScreen() {
               reporterId: profile.id,
               authorId: otherUserId,
               onReport: () => reportUserFlow(otherUserId, profile.id),
-              onBlocked: () => navigation.goBack(),
+              onBlocked: () => setBlocked(true),
             })
           }
         >
@@ -268,34 +280,40 @@ export default function ChatScreen() {
       )}
 
       {/* Input bar */}
-      <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
-        <TextInput
-          style={styles.input}
-          placeholder={t('chat.placeholder')}
-          placeholderTextColor={palette.ink40}
-          value={input}
-          onChangeText={setInput}
-          multiline
-          maxLength={500}
-          returnKeyType="default"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <TouchableOpacity
-          style={[styles.sendBtn, (!input.trim() || sending) && styles.sendBtnDisabled]}
-          onPress={handleSend}
-          activeOpacity={0.8}
-          disabled={!input.trim() || sending}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.send')}
-        >
-          {sending ? (
-            <ActivityIndicator color={palette.white} size="small" />
-          ) : (
-            <IconSend color={palette.white} size={18} />
-          )}
-        </TouchableOpacity>
-      </View>
+      {blocked ? (
+        <View style={[styles.blockedBar, { paddingBottom: Math.max(insets.bottom, 8) + 12 }]}>
+          <Text style={styles.blockedText}>{t('chat.blockedNotice')}</Text>
+        </View>
+      ) : (
+        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
+          <TextInput
+            style={styles.input}
+            placeholder={t('chat.placeholder')}
+            placeholderTextColor={palette.ink40}
+            value={input}
+            onChangeText={setInput}
+            multiline
+            maxLength={500}
+            returnKeyType="default"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TouchableOpacity
+            style={[styles.sendBtn, (!input.trim() || sending) && styles.sendBtnDisabled]}
+            onPress={handleSend}
+            activeOpacity={0.8}
+            disabled={!input.trim() || sending}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.send')}
+          >
+            {sending ? (
+              <ActivityIndicator color={palette.white} size="small" />
+            ) : (
+              <IconSend color={palette.white} size={18} />
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -433,4 +451,19 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   sendBtnDisabled: { opacity: 0.4 },
+
+  blockedBar: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.base,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: palette.ink70,
+    backgroundColor: palette.ink90,
+  },
+  blockedText: {
+    fontFamily: fontFamily.body,
+    fontSize: fontSize.sm,
+    color: palette.ink40,
+    textAlign: 'center',
+    lineHeight: fontSize.sm * 1.5,
+  },
 });

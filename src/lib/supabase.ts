@@ -668,6 +668,17 @@ export async function fetchBlockedIds(viewerId: string): Promise<string[]> {
   return (data as { blocked_id: string }[]).map((r) => r.blocked_id);
 }
 
+/** True if either user has blocked the other — used to disable messaging in
+ *  both directions, not just for the blocker (Guideline 1.2). */
+export async function isBlockedPair(userA: string, userB: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('blocks')
+    .select('blocker_id')
+    .or(`and(blocker_id.eq.${userA},blocked_id.eq.${userB}),and(blocker_id.eq.${userB},blocked_id.eq.${userA})`);
+  if (error) return false;
+  return (data?.length ?? 0) > 0;
+}
+
 /** Blocked users with their profile info — for the "Blocked users" management screen. */
 export async function fetchBlockedProfiles(viewerId: string): Promise<Profile[]> {
   const { data, error } = await supabase

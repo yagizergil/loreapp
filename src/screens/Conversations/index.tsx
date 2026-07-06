@@ -7,7 +7,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useProfile } from '../../lib/ProfileContext';
 import {
   Profile,
-  fetchConversationsSummary, fetchProfiles,
+  fetchConversationsSummary, fetchProfiles, fetchBlockedIds,
 } from '../../lib/supabase';
 import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/tokens';
 import Avatar from '../../components/ui/Avatar';
@@ -89,13 +89,22 @@ export default function ConversationsScreen() {
       // Single RPC computes last-message + unread-count per conversation
       // server-side, instead of fetching every conversation's full message
       // history client-side (the old N+1 pattern).
-      const summaries = await fetchConversationsSummary(profile.id);
+      const [summaries, blockedIds] = await Promise.all([
+        fetchConversationsSummary(profile.id),
+        fetchBlockedIds(profile.id),
+      ]);
       if (!summaries.length) { setItems([]); setLoading(false); return; }
 
-      const others = await fetchProfiles(summaries.map((s) => s.other_id));
+      const blocked = new Set(blockedIds);
+      // Guideline 1.2: a blocked user's conversation must not resurface in the
+      // inbox — blocking is meaningless if you can still see/reach them here.
+      const visible = summaries.filter((s) => !blocked.has(s.other_id));
+      if (!visible.length) { setItems([]); setLoading(false); return; }
+
+      const others = await fetchProfiles(visible.map((s) => s.other_id));
       const othersMap = Object.fromEntries(others.map((p) => [p.id, p]));
 
-      const enriched: ConvItem[] = summaries.map((s) => ({
+      const enriched: ConvItem[] = visible.map((s) => ({
         conversationId: s.conversation_id,
         other: othersMap[s.other_id] ?? { id: s.other_id, nickname: '?', avatar: 'OW', gender: null },
         lastMessageBody: s.last_message_body ?? '',

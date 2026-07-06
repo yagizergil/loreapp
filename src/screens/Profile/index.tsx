@@ -419,6 +419,16 @@ export default function ProfileScreen() {
           />
           <Divider />
           <SettingRow
+            icon={<IconInfo color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
+            label={t('profile.rows.reportAbuse')}
+            onPress={() =>
+              Linking.openURL(
+                `mailto:${LINKS.contactEmail}?subject=${encodeURIComponent(t('profile.rows.reportAbuseSubject'))}`
+              )
+            }
+          />
+          <Divider />
+          <SettingRow
             icon={<IconStar color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
             label={t('profile.rows.rateApp')}
             onPress={() => Linking.openURL(LINKS.rate)}

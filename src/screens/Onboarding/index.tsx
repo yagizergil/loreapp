@@ -13,6 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { LocalProfile, Gender, saveLocalProfile } from '../../lib/storage';
+import { CURRENT_EULA_VERSION } from '../../lib/eula';
 import {
   createProfile, signUpWithEmail, signInWithEmail, signInWithAppleToken,
   uploadAvatar, updateProfile, fetchProfileByAuthUserId, getAuthUser,
@@ -294,6 +295,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
           gender: (existing.gender as Gender) ?? 'other',
           avatarUrl: existing.avatar_url ?? null,
           isAnonymous: false,
+          eulaVersion: CURRENT_EULA_VERSION,
         };
         await saveLocalProfile(local);
         onComplete(local);
@@ -339,7 +341,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
 
       const local: LocalProfile = {
         id: p.id, nickname: p.nickname, avatar: p.avatar,
-        gender, avatarUrl, isAnonymous: false,
+        gender, avatarUrl, isAnonymous: false, eulaVersion: CURRENT_EULA_VERSION,
       };
       await saveLocalProfile(local);
       onComplete(local);
@@ -358,7 +360,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
       const p = await createProfile(nickname.trim(), avatarKey, gender);
       const local: LocalProfile = {
         id: p.id, nickname: p.nickname, avatar: p.avatar,
-        gender, avatarUrl: null, isAnonymous: true,
+        gender, avatarUrl: null, isAnonymous: true, eulaVersion: CURRENT_EULA_VERSION,
       };
       await saveLocalProfile(local);
       onComplete(local);
@@ -401,7 +403,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
 
       const local: LocalProfile = {
         id: p.id, nickname: p.nickname, avatar: p.avatar,
-        gender, avatarUrl, isAnonymous: false,
+        gender, avatarUrl, isAnonymous: false, eulaVersion: CURRENT_EULA_VERSION,
       };
       await saveLocalProfile(local);
       onComplete(local);
@@ -445,6 +447,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
         gender: (profile.gender as Gender) ?? 'other',
         avatarUrl: profile.avatar_url ?? null,
         isAnonymous: false,
+        eulaVersion: CURRENT_EULA_VERSION,
       };
       await saveLocalProfile(local);
       onComplete(local);
@@ -576,6 +579,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
           <Text style={s.eulaTitle}>{t('eula.title')}</Text>
           <Text style={s.eulaIntro}>{t('eula.intro')}</Text>
 
+          <View style={s.eulaRuleRow}><Text style={s.eulaBullet}>•</Text><Text style={s.eulaRule}>{t('eula.rule0')}</Text></View>
           <View style={s.eulaRuleRow}><Text style={s.eulaBullet}>•</Text><Text style={s.eulaRule}>{t('eula.rule1')}</Text></View>
           <View style={s.eulaRuleRow}><Text style={s.eulaBullet}>•</Text><Text style={s.eulaRule}>{t('eula.rule2')}</Text></View>
           <View style={s.eulaRuleRow}><Text style={s.eulaBullet}>•</Text><Text style={s.eulaRule}>{t('eula.rule3')}</Text></View>

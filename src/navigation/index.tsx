@@ -5,7 +5,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LocalProfile } from '../lib/storage';
+import { LocalProfile, saveLocalProfile, clearLocalProfile } from '../lib/storage';
+import { CURRENT_EULA_VERSION } from '../lib/eula';
+import { signOut as supabaseSignOut } from '../lib/supabase';
+import EulaGateScreen from '../screens/Onboarding/EulaGate';
 import { ProfileProvider } from '../lib/ProfileContext';
 import { PremiumProvider } from '../lib/PremiumContext';
 import { mapAskEvent } from '../lib/mapEvents';
@@ -204,7 +207,23 @@ export default function Navigation({ initialProfile }: Props) {
   const [upgrading, setUpgrading] = useState<LocalProfile | null>(null);
   const [justOnboarded, setJustOnboarded] = useState(false);
   const hasProfile = !!profile?.id && !!profile?.nickname;
+  const needsEulaReconsent = hasProfile && profile?.eulaVersion !== CURRENT_EULA_VERSION;
   const navRef = React.useRef<any>(null);
+
+  async function handleEulaAgree() {
+    if (!profile) return;
+    const updated: LocalProfile = { ...profile, eulaVersion: CURRENT_EULA_VERSION };
+    await saveLocalProfile(updated);
+    setProfile(updated);
+  }
+
+  async function handleEulaDecline() {
+    try { await supabaseSignOut(); } catch { /* noop */ }
+    await clearLocalProfile().catch(() => {});
+    resetAnalytics();
+    setUpgrading(null);
+    setProfile(null);
+  }
 
   // Analytics: init once, then identify/reset as the profile changes.
   useEffect(() => {
@@ -318,6 +337,8 @@ export default function Navigation({ initialProfile }: Props) {
           onCancel={() => setUpgrading(null)}
           onComplete={(p) => { setUpgrading(null); setProfile(p); }}
         />
+      ) : hasProfile && needsEulaReconsent ? (
+        <EulaGateScreen onAgree={handleEulaAgree} onSignOut={handleEulaDecline} />
       ) : hasProfile ? (
         <ProfileProvider profile={profile!}>
           <PremiumProvider profileId={profile!.id}>

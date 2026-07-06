@@ -168,6 +168,7 @@ const en = {
     errorRetry:         'Please try again.',
     retry:              'Try Again',
     moreOptions:        'More options',
+    blockedNotice:      "You can't message this user. Manage blocked users from Profile > Blocked Users.",
   },
 
   // ─── Conversations screen ─────────────────────────────────────────────────────
@@ -222,6 +223,8 @@ const en = {
       locationValue:    'Not stored',
       manageSubscription: 'Manage Subscription',
       rateApp:          'Rate the App',
+      reportAbuse:        'Report Abuse or Inappropriate Content',
+      reportAbuseSubject: 'Lore — Report: Inappropriate content or user',
       bugReport:        'Report a Bug',
       version:          'Version',
       signOut:          'Sign Out',
@@ -441,6 +444,7 @@ const en = {
   eula: {
     title:        'Community Rules',
     intro:        'Lore is an anonymous community. To keep everyone safe, you must agree to the following before continuing:',
+    rule0:        'You must be 18 years of age or older to use Lore.',
     rule1:        'There is zero tolerance for objectionable, hateful, or abusive content.',
     rule2:        'Users who post offensive content or harass others will be removed.',
     rule3:        'You can report content or block users at any time. We review reports within 24 hours.',
@@ -449,6 +453,8 @@ const en = {
     mustAgree:    'You must agree to the rules to continue.',
     terms:        'Terms of Use (EULA)',
     privacy:      'Privacy Policy',
+    reconsentNote: 'Updated — please review again',
+    declineSignOut: "I don't agree — sign me out",
   },
 
   // ─── Delete own content (Guideline 1.2) ────────────────────────────────────────

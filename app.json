@@ -16,7 +16,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleAllowMixedLocalizations": true
       },
-      "buildNumber": "9",
+      "buildNumber": "10",
       "bundleIdentifier": "com.yagizergilvokario.lore"
     },
     "android": {

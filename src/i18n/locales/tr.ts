@@ -168,6 +168,7 @@ const tr = {
     errorRetry:         'Lütfen tekrar dene.',
     retry:              'Tekrar Dene',
     moreOptions:        'Diğer seçenekler',
+    blockedNotice:      'Bu kullanıcıya mesaj gönderemezsin. Engellenen kullanıcıları Profil > Engellenen Kullanıcılar bölümünden yönetebilirsin.',
   },
 
   // ─── Conversations screen ─────────────────────────────────────────────────────
@@ -222,6 +223,8 @@ const tr = {
       locationValue:    'Kaydedilmiyor',
       manageSubscription: 'Aboneliği Yönet',
       rateApp:          'Uygulamamızı Değerlendir',
+      reportAbuse:        'Kötüye Kullanım veya Uygunsuz İçerik Bildir',
+      reportAbuseSubject: 'Lore — Bildirim: Uygunsuz içerik veya kullanıcı',
       bugReport:        'Hata Bildir',
       version:          'Versiyon',
       signOut:          'Çıkış Yap',
@@ -441,6 +444,7 @@ const tr = {
   eula: {
     title:        'Topluluk Kuralları',
     intro:        'Lore anonim bir topluluktur. Herkesin güvenliği için devam etmeden önce aşağıdakileri kabul etmelisin:',
+    rule0:        'Lore\'u kullanmak için 18 yaşında veya daha büyük olmalısın.',
     rule1:        'Uygunsuz, nefret içeren veya saldırgan içeriğe sıfır tolerans vardır.',
     rule2:        'Saldırgan içerik paylaşan veya başkalarını taciz eden kullanıcılar kaldırılır.',
     rule3:        'İstediğin zaman içerik şikayet edebilir veya kullanıcı engelleyebilirsin. Şikayetleri 24 saat içinde inceliyoruz.',
@@ -449,6 +453,8 @@ const tr = {
     mustAgree:    'Devam etmek için kuralları kabul etmelisin.',
     terms:        'Kullanım Şartları (EULA)',
     privacy:      'Gizlilik Politikası',
+    reconsentNote: 'Güncellendi — lütfen tekrar gözden geçir',
+    declineSignOut: 'Kabul etmiyorum — çıkış yap',
   },
 
   // ─── Kendi gönderini silme (Guideline 1.2) ─────────────────────────────────────
