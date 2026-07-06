@@ -29,6 +29,7 @@ export type AnalyticsEvent =
   | 'locked_pin_tapped'
   | 'empty_map_shown'
   | 'empty_map_ask_tapped'
+  | 'map_caught_up_shown'
   | 'review_prompt_shown'
   | 'share_result'
   | 'leaderboard_viewed'

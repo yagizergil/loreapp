@@ -94,6 +94,11 @@ const tr = {
     moreNearby:   'Yakında {{n}} soru daha var — cevapla veya soru sor, gelsinler',
     searchLabel:  'Soru ara',
     searchPlaceholder: 'Yakındaki sorularda ara...',
+    caughtUpTitle: 'Herkese cevap verdin',
+    caughtUpBody: 'Yakınında ulaşabildiğin herkese cevap verdin. Biri yeni bir soru sorduğunda sana haber vereceğiz.',
+    noMatchTitle: 'Eşleşen soru yok',
+    noMatchBody:  'Farklı bir filtre veya arama terimi dene.',
+    clearFilters: 'Filtreleri temizle',
   },
 
   // ─── Question Sheet (modal) ───────────────────────────────────────────────────

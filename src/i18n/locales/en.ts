@@ -94,6 +94,11 @@ const en = {
     moreNearby:   '{{n}} more nearby — answer or ask to see them',
     searchLabel:  'Search questions',
     searchPlaceholder: 'Search nearby questions...',
+    caughtUpTitle: "You're all caught up",
+    caughtUpBody: "You've answered everyone reachable nearby. We'll notify you the moment someone new posts.",
+    noMatchTitle: 'No questions match',
+    noMatchBody:  'Try a different filter or search term.',
+    clearFilters: 'Clear filters',
   },
 
   // ─── Question Sheet (modal) ───────────────────────────────────────────────────

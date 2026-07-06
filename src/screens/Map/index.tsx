@@ -179,6 +179,17 @@ export default function MapScreen() {
   );
   const moreNearbyCount = Math.max(0, sortedQuestions.length - visibleCap);
 
+  // Three distinct empty states, not one generic "nothing here": a brand
+  // new/dead area, an active filter or search excluding everything, and a
+  // genuinely engaged user who has answered every reachable question — the
+  // third case previously showed the exact same "You're early here" copy as
+  // a fresh install, which reads as broken/discouraging for a power user
+  // instead of acknowledging they've caught up.
+  const isFilteredView   = filter !== 'all' || searchQuery.trim().length > 0;
+  const trulyEmptyRegion = hasLoadedOnce && questions.length === 0;
+  const caughtUpEmpty    = hasLoadedOnce && questions.length > 0 && filteredQuestions.length === 0 && !isFilteredView;
+  const noMatchForFilter = hasLoadedOnce && filteredQuestions.length === 0 && isFilteredView;
+
   // "Wax Seal Reputation" — batch-fetch karma/premium for just the authors
   // currently rendered as pins (not the whole fetched set), so a dense area
   // never turns into an N-request waterfall. Purely decorative: failures are
@@ -197,9 +208,10 @@ export default function MapScreen() {
   }, []);
 
   useEffect(() => {
-    if (hasLoadedOnce && filteredQuestions.length === 0) track('empty_map_shown');
+    if (trulyEmptyRegion) track('empty_map_shown');
+    else if (caughtUpEmpty) track('map_caught_up_shown');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLoadedOnce, filteredQuestions.length === 0]);
+  }, [trulyEmptyRegion, caughtUpEmpty]);
 
   // Load all previously answered question IDs from DB so they persist across sessions
   useEffect(() => {
@@ -601,9 +613,10 @@ export default function MapScreen() {
       )}
 
 
-      {/* Empty region explainer — first-launch users outside seeded areas see
-          this instead of a silent blank map (App Store review, Guideline 2.1). */}
-      {hasLoadedOnce && filteredQuestions.length === 0 && !selectedQuestion && !showAsk && (
+      {/* Empty region explainer — genuinely dead/new area. First-launch users
+          outside seeded areas see this instead of a silent blank map
+          (App Store review, Guideline 2.1). */}
+      {trulyEmptyRegion && !selectedQuestion && !showAsk && (
         <View style={styles.emptyCard} pointerEvents="box-none">
           <View style={styles.emptyCardInner}>
             <SealMark size={40} shade={TYPE_SHADE.open} gid="emptySeal" />
@@ -615,6 +628,39 @@ export default function MapScreen() {
               onPress={() => { track('empty_map_ask_tapped'); setShowAsk(true); }}
             >
               <Text style={styles.emptyCtaText}>{t('map.emptyCta')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Caught-up explainer — an engaged user (often premium) who has
+          answered every reachable question. Distinct from the dead-area
+          card above: acknowledges progress instead of implying the map is
+          broken or that they're the first person here. */}
+      {caughtUpEmpty && !selectedQuestion && !showAsk && (
+        <View style={styles.emptyCard} pointerEvents="box-none">
+          <View style={styles.emptyCardInner}>
+            <SealMark size={40} shade={TYPE_SHADE.choice} gid="caughtUpSeal" />
+            <Text style={styles.emptyTitle}>{t('map.caughtUpTitle')}</Text>
+            <Text style={styles.emptyBody}>{t('map.caughtUpBody')}</Text>
+          </View>
+        </View>
+      )}
+
+      {/* No-match explainer — the active type filter or search term excludes
+          everything, even though questions exist nearby. A quick way back
+          out, not a big empty-state card. */}
+      {noMatchForFilter && !selectedQuestion && !showAsk && (
+        <View style={styles.noMatchCard} pointerEvents="box-none">
+          <View style={styles.noMatchCardInner}>
+            <Text style={styles.noMatchTitle}>{t('map.noMatchTitle')}</Text>
+            <Text style={styles.noMatchBody}>{t('map.noMatchBody')}</Text>
+            <TouchableOpacity
+              style={styles.noMatchClear}
+              activeOpacity={0.8}
+              onPress={() => { setFilter('all'); setSearchQuery(''); setShowSearch(false); }}
+            >
+              <Text style={styles.noMatchClearText}>{t('map.clearFilters')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -887,6 +933,51 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodySemiBold,
     fontSize: fontSize.base,
     color: palette.white,
+  },
+  noMatchCard: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    top: '42%',
+    alignItems: 'center',
+  },
+  noMatchCardInner: {
+    width: '100%',
+    maxWidth: CONTENT_MAX_WIDTH,
+    backgroundColor: palette.ink80 + 'D9',
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: palette.ink60,
+    paddingVertical: spacing.base,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.xs,
+    ...shadow.sm,
+  },
+  noMatchTitle: {
+    fontFamily: fontFamily.displayMedium,
+    fontSize: fontSize.md,
+    color: palette.ink00,
+    textAlign: 'center',
+  },
+  noMatchBody: {
+    fontFamily: fontFamily.body,
+    fontSize: fontSize.sm,
+    color: palette.ink40,
+    textAlign: 'center',
+  },
+  noMatchClear: {
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.base,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: palette.accent + '66',
+  },
+  noMatchClearText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.xs,
+    color: palette.accent,
   },
   moreNearbyPill: {
     position: 'absolute',
