@@ -546,12 +546,15 @@ export default function QuestionSheet({
                   moderationMenu({
                     reporterId: profileId,
                     authorId: question.author_id,
-                    onReport: () => reportQuestionFlow(question.id, profileId),
+                    onReport: () => reportQuestionFlow(question.id, profileId, () => {
+                      onDeleted?.(question.id);
+                      onClose();
+                    }),
                     onBlocked: onClose,
                   })
                 }
               >
-                <Text style={styles.reportText}>{t('sheet.report')}</Text>
+                <Text style={styles.reportText}>🚩 {t('sheet.report')}</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
@@ -916,8 +919,8 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
 
-  reportBtn: { alignSelf: 'center', paddingVertical: spacing.sm, marginTop: spacing.sm },
-  reportText: { fontFamily: fontFamily.body, fontSize: fontSize.xs, color: palette.ink60, textDecorationLine: 'underline' },
+  reportBtn: { alignSelf: 'center', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginTop: spacing.sm },
+  reportText: { fontFamily: fontFamily.bodySemiBold, fontSize: fontSize.sm, color: palette.accent },
 });
 
 const voteStyles = StyleSheet.create({

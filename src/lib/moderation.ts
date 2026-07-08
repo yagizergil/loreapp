@@ -28,12 +28,21 @@ function pickReasonAndReport(submit: (reason: string) => Promise<void>) {
   );
 }
 
-export function reportQuestionFlow(questionId: string, reporterId: string) {
-  pickReasonAndReport((reason) => reportQuestion(questionId, reporterId, reason));
+/** Reports the question, then hides it on this device immediately — the
+ *  App Store 1.2 "immediately remove posts from the feed" requirement must
+ *  not wait on a network round trip or a human review pass. */
+export function reportQuestionFlow(questionId: string, reporterId: string, onHidden?: () => void) {
+  pickReasonAndReport(async (reason) => {
+    await reportQuestion(questionId, reporterId, reason);
+    onHidden?.();
+  });
 }
 
-export function reportAnswerFlow(answerId: string, reporterId: string) {
-  pickReasonAndReport((reason) => reportAnswer(answerId, reporterId, reason));
+export function reportAnswerFlow(answerId: string, reporterId: string, onHidden?: () => void) {
+  pickReasonAndReport(async (reason) => {
+    await reportAnswer(answerId, reporterId, reason);
+    onHidden?.();
+  });
 }
 
 export function reportUserFlow(reportedId: string, reporterId: string) {

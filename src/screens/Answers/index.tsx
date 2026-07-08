@@ -770,7 +770,8 @@ export default function AnswersScreen() {
         onModerate={!isOwn ? () => moderationMenu({
           reporterId: profileId,
           authorId: item.author_id,
-          onReport: () => reportAnswerFlow(item.id, profileId),
+          onReport: () => reportAnswerFlow(item.id, profileId, () =>
+            setAnswers((prev) => prev.filter((a) => a.id !== item.id))),
           onBlocked: () => setAnswers((prev) => prev.filter((a) => a.author_id !== item.author_id)),
         }) : undefined}
         onDelete={isOwn ? () => handleDeleteAnswer(item.id) : undefined}
