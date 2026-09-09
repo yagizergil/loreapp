@@ -16,7 +16,8 @@ import MapView, { MapStyleElement, Region, Circle } from 'react-native-maps';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { Question, QuestionType, AuthorReputation, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds, fetchRegionQuestionCount, fetchAuthorKarma, logQuestionView, fetchNearbyActiveUserCount } from '../../lib/supabase';
+import { Question, QuestionType, AuthorReputation, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds, fetchRegionQuestionCount, fetchAuthorKarma, logQuestionView, fetchNearbyActiveUserCount, SayHiCandidate } from '../../lib/supabase';
+import SayHiSheet from '../../components/sheet/SayHiSheet';
 import { track } from '../../lib/analytics';
 import { useProfile } from '../../lib/ProfileContext';
 import { usePremium } from '../../lib/PremiumContext';
@@ -108,6 +109,7 @@ export default function MapScreen() {
   const VISIBLE_PINS_INCREMENT = 1;
   const [visibleCap, setVisibleCap] = useState(INITIAL_VISIBLE_PINS);
   const [activeNearby, setActiveNearby] = useState<number | null>(null);
+  const [showSayHi, setShowSayHi] = useState(false);
 
   const isLocked = useCallback((q: Question) => {
     if (isPremium || !userLocation) return false;
@@ -515,10 +517,14 @@ export default function MapScreen() {
           <View style={styles.appNameGroup}>
             <Text style={styles.appName}>lore</Text>
             {activeNearby !== null && (
-              <View style={styles.activeBadge}>
+              <TouchableOpacity
+                style={styles.activeBadge}
+                activeOpacity={0.75}
+                onPress={() => setShowSayHi(true)}
+              >
                 <View style={styles.activeDot} />
                 <Text style={styles.activeBadgeText}>{t('map.activeNearby', { n: activeNearby })}</Text>
-              </View>
+              </TouchableOpacity>
             )}
           </View>
           <View style={styles.topBarActions}>
@@ -568,6 +574,24 @@ export default function MapScreen() {
           profileId={profile.id}
           isPremium={isPremium}
           onClose={() => setShowLeaderboard(false)}
+        />
+      )}
+
+      {showSayHi && (
+        <SayHiSheet
+          profileId={profile.id}
+          isPremium={isPremium}
+          userLocation={userLocation}
+          onClose={() => setShowSayHi(false)}
+          onOpenChat={(_conversationId, candidate: SayHiCandidate) => {
+            setShowSayHi(false);
+            navigation.navigate('Chat', {
+              otherUserId: candidate.candidateId,
+              otherNickname: candidate.nickname,
+              otherAvatar: candidate.avatar,
+              otherGender: candidate.gender,
+            });
+          }}
         />
       )}
 

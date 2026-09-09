@@ -195,6 +195,25 @@ const tr = {
     toast: '🎉 Şanslı cevap! +{{amount}} bonus karma',
   },
 
+  // ─── Merhaba De ─────────────────────────────────────────────────────────────
+  sayHi: {
+    title:            'Merhaba De',
+    unlockBody:       'Şu an yakınında aktif olan birine anonim ilk mesajı sen at — Pro özelliği.',
+    unlockCta:        'Pro ile Merhaba De\'yi aç',
+    noOneNearby:      'Şu an yakınında yeni biri yok — birazdan tekrar dene.',
+    nearbyNow:        '● Şu an yakında aktif',
+    pickOpener:       'Bir açılış cümlesi seç, ya da kendin yaz',
+    customPlaceholder: 'Ya da kendi merhabanı yaz...',
+    noneLeft:         'Bugünlük Merhaba De hakkın kalmadı — yarın tekrar dene.',
+    remaining:        'Bugün {{remaining}}/{{limit}} hakkın kaldı',
+    templates: [
+      'Selam! Yakınlarda olduğunu gördüm, merhaba demek istedim 👋',
+      'Selam, buralarda bugün ne var ne yok?',
+      'Merhaba! Çevrende ilginç bir şey oluyor mu?',
+      'Selam yabancı — bu civarlara ne getirdi seni?',
+    ],
+  },
+
   // ─── Boost ──────────────────────────────────────────────────────────────────
   boost: {
     unlockCta:    'Pro ile öne çıkarmayı aç',
@@ -260,6 +279,7 @@ const tr = {
       myMessages:       'Mesajlarım',
       notifications:    'Bildirimler',
       language:         'Dil',
+      sayHiOptIn:       '"Merhaba De" mesajlarına izin ver',
       languageValue:    'Türkçe',
       privacy:          'Gizlilik Politikası',
       terms:            'Kullanım Şartları',

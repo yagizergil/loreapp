@@ -41,7 +41,10 @@ export type AnalyticsEvent =
   | 'question_viewers_viewed'
   | 'boost_unlock_tapped'
   | 'question_boosted'
-  | 'ask_template_used';
+  | 'ask_template_used'
+  | 'say_hi_unlock_tapped'
+  | 'say_hi_sheet_viewed'
+  | 'say_hi_sent';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;
 

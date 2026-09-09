@@ -195,6 +195,25 @@ const en = {
     toast: '🎉 Lucky answer! +{{amount}} bonus karma',
   },
 
+  // ─── Say Hi ─────────────────────────────────────────────────────────────────
+  sayHi: {
+    title:            'Say Hi',
+    unlockBody:       'Send an anonymous first hello to someone active near you right now — a Pro feature.',
+    unlockCta:        'Unlock Say Hi with Pro',
+    noOneNearby:      'No one new nearby right now — try again in a bit.',
+    nearbyNow:        '● Active nearby now',
+    pickOpener:       'Pick an opener, or write your own',
+    customPlaceholder: 'Or write your own hello...',
+    noneLeft:         "You're out of Say Hi's for today — try again tomorrow.",
+    remaining:        '{{remaining}}/{{limit}} left today',
+    templates: [
+      'Hey! Saw you were nearby, thought I\'d say hi 👋',
+      'Hi, what\'s good around here today?',
+      'Hello! Anything interesting happening near you?',
+      'Hey stranger — what brings you to this area?',
+    ],
+  },
+
   // ─── Boost ──────────────────────────────────────────────────────────────────
   boost: {
     unlockCta:    'Unlock boosting with Pro',
@@ -260,6 +279,7 @@ const en = {
       myMessages:       'My Messages',
       notifications:    'Notifications',
       language:         'Language',
+      sayHiOptIn:       'Allow "Say Hi" greetings',
       languageValue:    'English',
       privacy:          'Privacy Policy',
       terms:            'Terms of Service',

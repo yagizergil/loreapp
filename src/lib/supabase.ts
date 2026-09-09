@@ -453,6 +453,61 @@ export async function maybeGrantSurpriseKarma(profileId: string): Promise<Surpri
   return { granted: row.granted, amount: row.amount, bonusKarma: row.bonus_karma };
 }
 
+export interface SayHiCandidate {
+  candidateId: string;
+  nickname: string;
+  avatar: string;
+  avatarUrl: string | null;
+  gender: 'male' | 'female' | 'other' | null;
+}
+
+/** Remaining daily Say Hi sends (see say_hi.sql) for "2/3 left today" copy. */
+export async function fetchSayHiDailyRemaining(profileId: string, dailyLimit = 3): Promise<number> {
+  const { data, error } = await supabase.rpc('say_hi_daily_remaining', { p_profile_id: profileId, p_daily_limit: dailyLimit });
+  if (error) return 0;
+  return (data as number) ?? 0;
+}
+
+/** One eligible nearby-active stranger to greet, or null if no one qualifies
+ *  right now (sparse area, everyone already contacted, etc). */
+export async function findSayHiCandidate(profileId: string, lat: number, lng: number, radiusM = 3000): Promise<SayHiCandidate | null> {
+  const { data, error } = await supabase.rpc('find_say_hi_candidate', { p_profile_id: profileId, p_lat: lat, p_lng: lng, p_radius_m: radiusM });
+  if (error || !data?.length) return null;
+  const row = data[0] as { candidate_id: string; nickname: string; avatar: string; avatar_url: string | null; gender: string | null };
+  return {
+    candidateId: row.candidate_id, nickname: row.nickname, avatar: row.avatar,
+    avatarUrl: row.avatar_url, gender: (row.gender as SayHiCandidate['gender']) ?? null,
+  };
+}
+
+export interface SayHiResult {
+  ok: boolean;
+  remaining: number;
+}
+
+/** Premium-gated (see record_say_hi) — `isPremium` is the caller's already
+ *  OR-combined RevenueCat/referral status, same trust model as boostQuestion. */
+export async function recordSayHi(senderId: string, receiverId: string, isPremium: boolean, dailyLimit = 3): Promise<SayHiResult> {
+  const { data, error } = await supabase.rpc('record_say_hi', {
+    p_sender_id: senderId, p_receiver_id: receiverId, p_is_premium: isPremium, p_daily_limit: dailyLimit,
+  });
+  if (error || !data?.length) return { ok: false, remaining: 0 };
+  const row = data[0] as { ok: boolean; remaining: number };
+  return { ok: row.ok, remaining: row.remaining };
+}
+
+/** Opt in/out of receiving Say Hi greetings from strangers — a real,
+ *  visible Settings toggle (see Profile screen), not a dark pattern. */
+export async function setOpenToSayHi(profileId: string, open: boolean): Promise<void> {
+  await supabase.rpc('set_open_to_say_hi', { p_id: profileId, p_open: open });
+}
+
+export async function fetchOpenToSayHi(profileId: string): Promise<boolean> {
+  const { data, error } = await supabase.from('profiles').select('open_to_say_hi').eq('id', profileId).maybeSingle();
+  if (error) return true;
+  return (data as any)?.open_to_say_hi ?? true;
+}
+
 /** "N people active nearby" for the Map density badge — always >= 1
  *  (see nearby_active_user_count.sql for why the floor is honest, not fake). */
 export async function fetchNearbyActiveUserCount(

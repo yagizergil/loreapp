@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, Alert, Switch, Linking, ActivityIndicator, Modal, Pressable,
@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useProfile } from '../../lib/ProfileContext';
 import { clearLocalProfile } from '../../lib/storage';
-import { fetchUserStats, signOut, deleteAccount, fetchBlockedProfiles, unblockUser, Profile } from '../../lib/supabase';
+import { fetchUserStats, signOut, deleteAccount, fetchBlockedProfiles, unblockUser, Profile, fetchOpenToSayHi, setOpenToSayHi } from '../../lib/supabase';
 import { authEvents } from '../../lib/authEvents';
 import { usePremium } from '../../lib/PremiumContext';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
@@ -17,7 +17,7 @@ import { getKarmaTier } from '../../lib/karma';
 import {
   IconMessages, IconSignOut, IconTrash, IconTimeline, IconTrophy, IconBell,
   IconGlobe, IconLock, IconDocument, IconBlock, IconMapPin, IconCard,
-  IconStar, IconBug, IconInfo, IconGift,
+  IconStar, IconBug, IconInfo, IconGift, IconPerson,
 } from '../../components/ui/Icons';
 import { SealMark, TYPE_SHADE } from '../../components/map/SealMark';
 import InviteSheet from '../../components/sheet/InviteSheet';
@@ -157,6 +157,7 @@ export default function ProfileScreen() {
   const { isPremium } = usePremium();
   const [stats, setStats]     = useState<{ questions: number; answers: number; streak: number; karma: number } | null>(null);
   const [notifOn, setNotifOn] = useState(true);
+  const [openToSayHi, setOpenToSayHiState] = useState(true);
   const [busySignOut, setBusySignOut]   = useState(false);
   const [busyDelete, setBusyDelete]     = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -197,6 +198,15 @@ export default function ProfileScreen() {
       .then(setStats)
       .catch(() => setStats({ questions: 0, answers: 0, streak: 0, karma: 0 }));
   }, [profile.id]));
+
+  useEffect(() => {
+    fetchOpenToSayHi(profile.id).then(setOpenToSayHiState).catch(() => {});
+  }, [profile.id]);
+
+  function handleToggleSayHi(next: boolean) {
+    setOpenToSayHiState(next);
+    setOpenToSayHi(profile.id, next).catch(() => setOpenToSayHiState(!next));
+  }
 
   // ── Sign out ─────────────────────────────────────────────────────────────
   function handleSignOut() {
@@ -420,6 +430,19 @@ export default function ProfileScreen() {
             label={t('profile.rows.language')}
             value={`${currentLang.flag}  ${currentLang.label}`}
             onPress={() => setShowLangPicker(true)}
+          />
+          <Divider />
+          <SettingRow
+            icon={<IconPerson color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
+            label={t('profile.rows.sayHiOptIn')}
+            rightNode={
+              <Switch
+                value={openToSayHi}
+                onValueChange={handleToggleSayHi}
+                trackColor={{ false: palette.ink60, true: palette.accent + 'AA' }}
+                thumbColor={openToSayHi ? palette.accent : palette.ink40}
+              />
+            }
           />
         </Section>
 
