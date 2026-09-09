@@ -38,7 +38,9 @@ export type AnalyticsEvent =
   | 'invite_share_tapped'
   | 'referral_redeemed'
   | 'question_viewers_unlock_tapped'
-  | 'question_viewers_viewed';
+  | 'question_viewers_viewed'
+  | 'boost_unlock_tapped'
+  | 'question_boosted';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;
 

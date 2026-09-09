@@ -21,18 +21,21 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import {
-  Question, QuestionType, Answer, Profile,
+  Question, QuestionType, Answer, Profile, AuthorReputation,
   fetchAnswers, submitAnswer, fetchProfiles, countTodayAnswers, FREE_DAILY_ANSWER_LIMIT,
   fetchBlockedIds, toggleAnswerUpvote, fetchUpvotedAnswerIds, deleteOwnAnswer, logQuestionView,
+  fetchAuthorKarma,
 } from '../../lib/supabase';
 import { paywallEvents } from '../../lib/premiumEvents';
 import QuestionViewersRow from '../../components/QuestionViewersRow';
+import BoostRow from '../../components/BoostRow';
 import { track } from '../../lib/analytics';
 import { firstActionEvent } from '../../lib/engagementEvents';
 import { usePremium } from '../../lib/PremiumContext';
 import { supabase } from '../../lib/supabase';
 import { moderationMenu, reportAnswerFlow } from '../../lib/moderation';
 import { containsObjectionableContent } from '../../lib/contentFilter';
+import { getKarmaTier } from '../../lib/karma';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import AvatarView from '../../components/ui/Avatar';
 import { SkeletonList } from '../../components/ui/SkeletonRow';
@@ -241,6 +244,12 @@ interface AnswerCardProps {
   onMessage?: () => void;
   onModerate?: () => void;
   onDelete?: () => void;
+  /** Premium karma tier badge (see karma.ts) — same earned status shown on
+   *  Profile/Leaderboard/map pins, extended here so an answer's author
+   *  shows it too. Primitives, not the derived tier object, so the memo
+   *  comparator below stays a cheap value check. */
+  authorIsPremium?: boolean;
+  authorKarma?: number;
 }
 
 // Custom comparator: `renderAnswerItem` below depends on `upvotedIds`, so its
@@ -258,15 +267,18 @@ function answerCardPropsEqual(prev: AnswerCardProps, next: AnswerCardProps): boo
     prev.upvoted === next.upvoted &&
     !!prev.onMessage === !!next.onMessage &&
     !!prev.onModerate === !!next.onModerate &&
-    !!prev.onDelete === !!next.onDelete
+    !!prev.onDelete === !!next.onDelete &&
+    prev.authorIsPremium === next.authorIsPremium &&
+    prev.authorKarma === next.authorKarma
   );
 }
 
 const AnswerCard = React.memo(function AnswerCard({
-  answer, author, isOwn, upvoted, onUpvote, onMessage, onModerate, onDelete,
+  answer, author, isOwn, upvoted, onUpvote, onMessage, onModerate, onDelete, authorIsPremium, authorKarma,
 }: AnswerCardProps) {
   const scale     = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const tier = authorIsPremium ? getKarmaTier(authorKarma ?? 0) : null;
 
   function handleUpvote() {
     scale.value = withSequence(
@@ -288,11 +300,17 @@ const AnswerCard = React.memo(function AnswerCard({
           avatarUrl={author?.avatar_url}
           gender={author?.gender}
           size={34}
-          ring={false}
+          ring={!!tier}
+          ringColor={tier?.color}
         />
         <View style={ac.meta}>
           <View style={ac.nameRow}>
             <Text style={ac.name} numberOfLines={1}>{author?.nickname ?? i18n.t('answers.anonymous')}</Text>
+            {tier && (
+              <View style={[ac.tierBadge, { borderColor: tier.color + '66', backgroundColor: tier.color + '22' }]}>
+                <Text style={[ac.tierBadgeText, { color: tier.color }]}>{i18n.t(tier.label)}</Text>
+              </View>
+            )}
             {isOwn && (
               <View style={ac.ownBadge}>
                 <Text style={ac.ownBadgeText}>{i18n.t('answers.mine')}</Text>
@@ -382,6 +400,12 @@ const ac = StyleSheet.create({
     paddingHorizontal: 7, paddingVertical: 2,
   },
   ownBadgeText: { fontFamily: fontFamily.bodySemiBold, fontSize: 10, color: palette.accent },
+  tierBadge: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.full,
+    paddingHorizontal: 7, paddingVertical: 2,
+  },
+  tierBadgeText: { fontFamily: fontFamily.bodySemiBold, fontSize: 10 },
   body: {
     fontFamily: fontFamily.body,
     fontSize: fontSize.base,
@@ -479,6 +503,7 @@ export default function AnswersScreen() {
 
   const [answers, setAnswers]       = useState<Answer[]>([]);
   const [authorsMap, setAuthorsMap] = useState<Record<string, Profile>>({});
+  const [authorKarmaMap, setAuthorKarmaMap] = useState<Map<string, AuthorReputation>>(new Map());
   const [loading, setLoading]       = useState(true);
   const [text, setText]             = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -528,6 +553,7 @@ export default function AnswersScreen() {
         if (authorIds.length) {
           const profiles = await fetchProfiles(authorIds);
           if (!cancelled) setAuthorsMap(Object.fromEntries(profiles.map((p) => [p.id, p])));
+          fetchAuthorKarma(authorIds).then((m) => { if (!cancelled) setAuthorKarmaMap(m); }).catch(() => {});
         }
       } catch {}
       finally { if (!cancelled) setLoading(false); }
@@ -738,7 +764,15 @@ export default function AnswersScreen() {
           </View>
           <Text style={s.heroBody}>{question.body}</Text>
           {question.author_id === profileId && (
-            <QuestionViewersRow questionId={question.id} isPremium={isPremium} />
+            <>
+              <QuestionViewersRow questionId={question.id} isPremium={isPremium} />
+              <BoostRow
+                questionId={question.id}
+                profileId={profileId}
+                isPremium={isPremium}
+                isBoosted={!!question.is_boosted}
+              />
+            </>
           )}
         </View>
       </View>
@@ -767,6 +801,7 @@ export default function AnswersScreen() {
   const renderAnswerItem = useCallback(({ item }: { item: Answer }) => {
     const author = authorsMap[item.author_id];
     const isOwn  = item.author_id === profileId;
+    const rep    = authorKarmaMap.get(item.author_id);
     return (
       <AnswerCard
         answer={item}
@@ -783,9 +818,11 @@ export default function AnswersScreen() {
           onBlocked: () => setAnswers((prev) => prev.filter((a) => a.author_id !== item.author_id)),
         }) : undefined}
         onDelete={isOwn ? () => handleDeleteAnswer(item.id) : undefined}
+        authorIsPremium={rep?.isPremium}
+        authorKarma={rep?.karma}
       />
     );
-  }, [authorsMap, profileId, upvotedIds]);
+  }, [authorsMap, authorKarmaMap, profileId, upvotedIds]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (

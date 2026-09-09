@@ -13,6 +13,10 @@
 -- Hız: KNN operatörü (geom <-> nokta) + GiST index ile en yakın N çok hızlı.
 -- ════════════════════════════════════════════════════════════════════════════
 
+-- Premium "boost" (see question_boosts.sql) surfaces a boosted question to
+-- viewers OUTSIDE their normal radius, up to p_fallback_m, sorted first —
+-- that reach is what the boost actually buys.
+drop function if exists questions_around(float, float, float, int, int, float);
 create or replace function questions_around(
   p_lat        float,
   p_lng        float,
@@ -32,7 +36,8 @@ returns table (
   created_at   timestamptz,
   lat          float,
   lng          float,
-  dist_m       float
+  dist_m       float,
+  is_boosted   boolean
 )
 language plpgsql stable as $$
 declare
@@ -49,15 +54,32 @@ begin
   v_radius := case when v_count >= p_min then p_premium_m else p_fallback_m end;
 
   return query
-    select
-      q.id, q.author_id, q.body, q.type, q.options, q.geom,
-      q.answer_count, q.created_at,
-      st_y(q.geom::geometry) as lat,
-      st_x(q.geom::geometry) as lng,
-      st_distance(q.geom, v_pt) as dist_m
-    from questions q
-    where st_dwithin(q.geom, v_pt, v_radius)
-    order by q.geom <-> v_pt        -- en yakın önce (KNN, gist index)
+    select * from (
+      select
+        q.id, q.author_id, q.body, q.type, q.options, q.geom,
+        q.answer_count, q.created_at,
+        st_y(q.geom::geometry) as lat,
+        st_x(q.geom::geometry) as lng,
+        st_distance(q.geom, v_pt) as dist_m,
+        (q.boosted_until is not null and q.boosted_until > now()) as is_boosted
+      from questions q
+      where st_dwithin(q.geom, v_pt, v_radius)
+
+      union
+
+      select
+        q.id, q.author_id, q.body, q.type, q.options, q.geom,
+        q.answer_count, q.created_at,
+        st_y(q.geom::geometry) as lat,
+        st_x(q.geom::geometry) as lng,
+        st_distance(q.geom, v_pt) as dist_m,
+        true as is_boosted
+      from questions q
+      where q.boosted_until is not null
+        and q.boosted_until > now()
+        and st_dwithin(q.geom, v_pt, p_fallback_m)
+    ) combined
+    order by is_boosted desc, dist_m asc
     limit p_max;
 end;
 $$;

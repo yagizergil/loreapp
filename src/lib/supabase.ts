@@ -57,6 +57,9 @@ export interface Question {
   /** Distance (meters) from the query point. Present when fetched via
    *  questions_around; used to compute the free/premium lock state. */
   dist_m?: number;
+  /** True while a premium "boost" (see question_boosts.sql) has widened
+   *  this question's reach beyond the viewer's normal radius. */
+  is_boosted?: boolean;
 }
 
 export interface Answer {
@@ -129,6 +132,8 @@ export interface LeaderboardEntry {
   avatar_url: string | null;
   answer_count: number;
   rank: number;
+  karma: number;
+  is_premium: boolean;
 }
 
 /** Top contributors (by answers given, last 7 days by default) near a point.
@@ -391,6 +396,37 @@ export async function fetchQuestionViewers(questionId: string, limit = 30): Prom
  *  a failed view log must not break the question-detail UI. */
 export function logQuestionView(questionId: string, viewerId: string): void {
   supabase.rpc('log_question_view', { p_question_id: questionId, p_viewer_id: viewerId }).then(() => {}, () => {});
+}
+
+/** Remaining weekly boosts (see question_boosts.sql) for the Boost button's
+ *  "2/3 left this week" style copy. */
+export async function fetchBoostWeeklyRemaining(profileId: string, weeklyLimit = 3): Promise<number> {
+  const { data, error } = await supabase.rpc('boost_weekly_remaining', { p_profile_id: profileId, p_weekly_limit: weeklyLimit });
+  if (error) return 0;
+  return (data as number) ?? 0;
+}
+
+export interface BoostResult {
+  ok: boolean;
+  remaining: number;
+  boostedUntil: string | null;
+}
+
+/** Widens a question's reach beyond the author's normal radius for a few
+ *  hours — premium-only, capped at `weeklyLimit` per rolling 7 days.
+ *  `isPremium` here is the caller's already-OR-combined RevenueCat/referral
+ *  status (see PremiumContext) — same client-supplied-identity trust model
+ *  as city_leaderboard/questions_around elsewhere in this file. */
+export async function boostQuestion(
+  questionId: string, profileId: string, isPremium: boolean, durationHours = 3, weeklyLimit = 3,
+): Promise<BoostResult> {
+  const { data, error } = await supabase.rpc('boost_question', {
+    p_question_id: questionId, p_profile_id: profileId, p_is_premium: isPremium,
+    p_duration_hours: durationHours, p_weekly_limit: weeklyLimit,
+  });
+  if (error || !data?.length) return { ok: false, remaining: 0, boostedUntil: null };
+  const row = data[0] as { ok: boolean; remaining: number; boosted_until: string | null };
+  return { ok: row.ok, remaining: row.remaining, boostedUntil: row.boosted_until };
 }
 
 /** "N people active nearby" for the Map density badge — always >= 1

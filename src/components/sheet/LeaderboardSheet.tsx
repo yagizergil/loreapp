@@ -11,6 +11,7 @@ import { fetchCityLeaderboard, fetchMyLeaderboardRank, LeaderboardEntry } from '
 import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/tokens';
 import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import Avatar from '../ui/Avatar';
+import { getKarmaTier } from '../../lib/karma';
 import { track } from '../../lib/analytics';
 import { paywallEvents } from '../../lib/premiumEvents';
 import { useTranslation } from 'react-i18next';
@@ -46,11 +47,20 @@ interface Props {
 // "locked" row data to render past this point.
 const LeaderboardRow = React.memo(function LeaderboardRow({ item, isMe }: { item: LeaderboardEntry; isMe: boolean }) {
   const { t } = useTranslation();
+  // Karma tier badge is a premium-only status marker (see karma.ts) — the
+  // same earned reputation shown on Profile and as a map-pin ring, now also
+  // visible here so a free viewer sees exactly what upgrading would earn.
+  const tier = item.is_premium ? getKarmaTier(item.karma) : null;
   return (
     <View style={[styles.row, isMe && styles.rowMine]}>
       <Text style={styles.rank}>{item.rank}</Text>
-      <Avatar avatarKey={item.avatar} avatarUrl={item.avatar_url} size={32} ring={false} />
+      <Avatar avatarKey={item.avatar} avatarUrl={item.avatar_url} size={32} ring={!!tier} ringColor={tier?.color} />
       <Text style={styles.name} numberOfLines={1}>{item.nickname}</Text>
+      {tier && (
+        <View style={[styles.tierBadge, { borderColor: tier.color + '66', backgroundColor: tier.color + '22' }]}>
+          <Text style={[styles.tierBadgeText, { color: tier.color }]}>{t(tier.label)}</Text>
+        </View>
+      )}
       <Text style={styles.count}>{t('leaderboard.answersCount', { n: item.answer_count })}</Text>
     </View>
   );
@@ -281,6 +291,16 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.body,
     fontSize: fontSize.xs,
     color: palette.ink40,
+  },
+  tierBadge: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+  },
+  tierBadgeText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 10,
   },
   unlockBtn: {
     marginTop: spacing.sm,

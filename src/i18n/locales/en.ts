@@ -179,6 +179,14 @@ const en = {
     viewersEmpty:      'No one else has viewed this yet.',
   },
 
+  // ─── Boost ──────────────────────────────────────────────────────────────────
+  boost: {
+    unlockCta:    'Unlock boosting with Pro',
+    cta:          'Boost this question ({{remaining}}/{{limit}} left this week)',
+    noneLeft:     'No boosts left this week',
+    activeBadge:  'Boosted — extra reach for {{hours}}h',
+  },
+
   // ─── Chat screen ─────────────────────────────────────────────────────────────
   chat: {
     subtitle:           'Anonymous chat',

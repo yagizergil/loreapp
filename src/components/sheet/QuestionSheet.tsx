@@ -18,6 +18,7 @@ import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { track } from '../../lib/analytics';
 import { maybeRequestReviewAfterAnswer } from '../../lib/reviewPrompt';
 import QuestionViewersRow from '../QuestionViewersRow';
+import BoostRow from '../BoostRow';
 import { firstActionEvent } from '../../lib/engagementEvents';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
@@ -269,7 +270,15 @@ export default function QuestionSheet({
             {/* Question */}
             <Text style={styles.questionBody}>{question.body}</Text>
             {question.author_id === profileId && (
-              <QuestionViewersRow questionId={question.id} isPremium={isPremium} />
+              <>
+                <QuestionViewersRow questionId={question.id} isPremium={isPremium} />
+                <BoostRow
+                  questionId={question.id}
+                  profileId={profileId}
+                  isPremium={isPremium}
+                  isBoosted={!!question.is_boosted}
+                />
+              </>
             )}
 
             {/* Stats */}

@@ -179,6 +179,14 @@ const tr = {
     viewersEmpty:      'Henüz başka kimse görüntülemedi.',
   },
 
+  // ─── Boost ──────────────────────────────────────────────────────────────────
+  boost: {
+    unlockCta:    'Pro ile öne çıkarmayı aç',
+    cta:          'Bu soruyu öne çıkar ({{remaining}}/{{limit}} kaldı, bu hafta)',
+    noneLeft:     'Bu hafta öne çıkarma hakkın kalmadı',
+    activeBadge:  'Öne çıkarıldı — {{hours}} saat daha geniş erişim',
+  },
+
   // ─── Chat screen ─────────────────────────────────────────────────────────────
   chat: {
     subtitle:           'Anonim sohbet',

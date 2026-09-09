@@ -22,7 +22,11 @@
 -- network response for anyone to read. Clamping the row count server-side
 -- closes that casual bypass even though a determined caller could still lie
 -- about p_is_premium.
-drop function if exists city_leaderboard(float, float, float, int, int);
+-- karma + is_premium added so leaderboard rows can show the same
+-- premium-gated karma tier badge already shown on Profile and as a
+-- map-pin ring (see author_karma.sql) — this was the one surface
+-- displaying rank/name without it.
+drop function if exists city_leaderboard(float, float, float, int, int, boolean);
 create or replace function city_leaderboard(
   p_lat         float,
   p_lng         float,
@@ -37,7 +41,9 @@ returns table (
   avatar       text,
   avatar_url   text,
   answer_count bigint,
-  rank         bigint
+  rank         bigint,
+  karma        bigint,
+  is_premium   boolean
 )
 language sql stable as $$
   select
@@ -45,15 +51,19 @@ language sql stable as $$
     p.nickname,
     p.avatar,
     p.avatar_url,
-    count(a.id) as answer_count,
-    row_number() over (order by count(a.id) desc, p.id) as rank
+    count(a.id) filter (where a.created_at > now() - make_interval(days => p_days)) as answer_count,
+    row_number() over (
+      order by count(a.id) filter (where a.created_at > now() - make_interval(days => p_days)) desc, p.id
+    ) as rank,
+    coalesce(sum(a.upvotes), 0) as karma,
+    coalesce(p.is_premium, false) as is_premium
   from profiles p
   join answers a on a.author_id = p.id
   where coalesce(p.is_bot, false) = false
     and p.last_geom is not null
     and st_dwithin(p.last_geom, st_makepoint(p_lng, p_lat)::geography, p_radius_m)
-    and a.created_at > now() - make_interval(days => p_days)
-  group by p.id, p.nickname, p.avatar, p.avatar_url
+  group by p.id, p.nickname, p.avatar, p.avatar_url, p.is_premium
+  having count(a.id) filter (where a.created_at > now() - make_interval(days => p_days)) > 0
   order by answer_count desc, p.id
   limit least(coalesce(p_limit, 50), case when p_is_premium then 100 else 3 end);
 $$;

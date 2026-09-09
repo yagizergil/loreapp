@@ -11,9 +11,13 @@ interface Props {
   gender?: Gender | null;
   size?: number;
   ring?: boolean;
+  /** Overrides the default gender-color ring — used for the premium karma
+   *  tier ring (see karma.ts) where the ring communicates earned status
+   *  rather than gender. */
+  ringColor?: string;
 }
 
-export default function Avatar({ avatarKey, avatarUrl, gender, size = 48, ring = true }: Props) {
+export default function Avatar({ avatarKey, avatarUrl, gender, size = 48, ring = true, ringColor }: Props) {
   const innerSize = Math.round(size * 0.8);
   const emojiSize = Math.round(innerSize * 0.56);
 
@@ -24,7 +28,7 @@ export default function Avatar({ avatarKey, avatarUrl, gender, size = 48, ring =
         height: size,
         borderRadius: size / 2,
         borderWidth: ring ? 2 : 0,
-        borderColor: genderColor(gender),
+        borderColor: ringColor ?? genderColor(gender),
         alignItems: 'center',
         justifyContent: 'center',
       }}
