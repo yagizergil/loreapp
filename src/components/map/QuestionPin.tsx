@@ -216,6 +216,14 @@ function QuestionPin({
           </View>
         )}
 
+        {/* Confession/İtiraf category (see confession_category.sql) — a
+            purely topical tag, lowest priority of the three pin badges. */}
+        {question.is_confession && !question.is_daily_question && !question.is_boosted && (
+          <View style={[styles.confessionBadge, { left: halfW - 10 }]}>
+            <Text style={styles.boostBadgeText}>🤫</Text>
+          </View>
+        )}
+
       </View>
     </Marker>
   );
@@ -288,6 +296,18 @@ const styles = StyleSheet.create({
     alignItems:     'center',
     justifyContent: 'center',
     backgroundColor: '#D4A64A',
+    borderWidth:    1.5,
+    borderColor:    '#0B0D12',
+  },
+  confessionBadge: {
+    position:       'absolute',
+    top:            -4,
+    width:          18,
+    height:         18,
+    borderRadius:   9,
+    alignItems:     'center',
+    justifyContent: 'center',
+    backgroundColor: '#8B5FBF',
     borderWidth:    1.5,
     borderColor:    '#0B0D12',
   },

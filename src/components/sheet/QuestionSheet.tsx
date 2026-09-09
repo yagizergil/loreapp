@@ -274,6 +274,11 @@ export default function QuestionSheet({
                     <Text style={[styles.typeText, { color: '#D4A64A' }]}>🌟 {t('map.dailyQuestionBadge')}</Text>
                   </View>
                 )}
+                {question.is_confession && (
+                  <View style={[styles.typePill, { backgroundColor: '#8B5FBF22', borderColor: '#8B5FBF55' }]}>
+                    <Text style={[styles.typeText, { color: '#8B5FBF' }]}>🤫 {t('ask.confessionBadge')}</Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.timeText}>{timeAgo(question.created_at)}</Text>
             </View>

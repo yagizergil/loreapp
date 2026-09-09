@@ -491,7 +491,13 @@ const tr = {
       open1: 'Anlık ruh halini bozan küçük bir şey nedir?',
       open2: 'Buralarda hakkı verilmeyen en iyi yer neresi?',
       open3: 'Çocukken inandığın ama sonradan yanlış çıkan bir şey neydi?',
+      confession1: 'Bir itirafım var ve haklı mıyım bilmem lazım...',
+      confession2: 'Buralarda bir şey oldu ve kimseye anlatmadım. Haksız mıyım?',
+      confession3: 'Bunu anonim olarak içimden atmam lazım...',
     },
+    confessionLabel: '🤫 İtiraf olarak paylaş',
+    confessionSub:   'Tamamen anonim — kim olduğun asla belli olmaz.',
+    confessionBadge: 'İtiraf',
   },
 
   // ─── Cluster sheet ────────────────────────────────────────────────────────────

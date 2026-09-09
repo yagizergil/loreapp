@@ -33,6 +33,9 @@ export function getQuestionTemplates(type: QuestionType): QuestionTemplate[] {
         { body: i18n.t('ask.templates.open1') },
         { body: i18n.t('ask.templates.open2') },
         { body: i18n.t('ask.templates.open3') },
+        { body: i18n.t('ask.templates.confession1') },
+        { body: i18n.t('ask.templates.confession2') },
+        { body: i18n.t('ask.templates.confession3') },
       ];
   }
 }

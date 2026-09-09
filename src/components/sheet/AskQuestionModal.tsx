@@ -146,6 +146,7 @@ export default function AskQuestionModal({ profileId, userLocation, onClose, onP
   const [choiceOptions, setChoices]     = useState<string[]>(['', '']);
   const [submitting, setSubmitting]     = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+  const [isConfession, setIsConfession] = useState(false);
 
   const typeData   = TYPES.find((t) => t.type === selectedType)!;
   const typeColor  = typeData.color;
@@ -180,8 +181,8 @@ export default function AskQuestionModal({ profileId, userLocation, onClose, onP
         Alert.alert(t('common.error'), t('ask.errorNoLocation'));
         return;
       }
-      await postQuestion(profileId, questionBody.trim(), selectedType, userLocation.lat, userLocation.lng, options);
-      track('question_posted', { type: selectedType });
+      await postQuestion(profileId, questionBody.trim(), selectedType, userLocation.lat, userLocation.lng, options, isConfession);
+      track('question_posted', { type: selectedType, is_confession: isConfession });
       firstActionEvent.notify();
       onPosted();
       onClose();
@@ -283,6 +284,23 @@ export default function AskQuestionModal({ profileId, userLocation, onClose, onP
           </ScrollView>
         </>
       )}
+
+      {/* Confession toggle — a topical tag, not an answer format. Leans
+          into anonymity's strength (AITA/itiraf-style engagement). */}
+      <TouchableOpacity
+        style={[m.confessionChip, isConfession && m.confessionChipActive]}
+        activeOpacity={0.8}
+        onPress={() => setIsConfession((v) => !v)}
+      >
+        <Text style={[m.confessionEmoji]}>🤫</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[m.confessionLabel, isConfession && m.confessionLabelActive]}>{t('ask.confessionLabel')}</Text>
+          <Text style={m.confessionSub}>{t('ask.confessionSub')}</Text>
+        </View>
+        <View style={[m.confessionToggle, isConfession && m.confessionToggleActive]}>
+          {isConfession && <View style={m.confessionToggleDot} />}
+        </View>
+      </TouchableOpacity>
 
       {/* Main input */}
       <View style={[m.inputCard, inputFocused && { borderColor: typeColor }]}>
@@ -391,9 +409,16 @@ export default function AskQuestionModal({ profileId, userLocation, onClose, onP
       <View style={[m.previewCard, { borderColor: typeColor + '66' }]}>
         <View style={[m.previewAccent, { backgroundColor: typeColor }]} />
         <View style={m.previewInner}>
-          <View style={[m.previewBadge, { backgroundColor: typeColor + '22' }]}>
-            <View style={[m.previewBadgeDot, { backgroundColor: typeColor }]} />
-            <Text style={[m.previewBadgeText, { color: typeColor }]}>{typeData.label}</Text>
+          <View style={m.previewBadgeRow}>
+            <View style={[m.previewBadge, { backgroundColor: typeColor + '22' }]}>
+              <View style={[m.previewBadgeDot, { backgroundColor: typeColor }]} />
+              <Text style={[m.previewBadgeText, { color: typeColor }]}>{typeData.label}</Text>
+            </View>
+            {isConfession && (
+              <View style={[m.previewBadge, { backgroundColor: '#8B5FBF22' }]}>
+                <Text style={[m.previewBadgeText, { color: '#8B5FBF' }]}>🤫 {t('ask.confessionBadge')}</Text>
+              </View>
+            )}
           </View>
           <Text style={m.previewBody}>{questionBody}</Text>
           {selectedType === 'vote' && (
@@ -678,6 +703,46 @@ const m = StyleSheet.create({
     textAlign: 'right',
   },
 
+  // Confession toggle chip
+  confessionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: palette.ink70,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: palette.ink60,
+    padding: spacing.base,
+    marginBottom: spacing.base,
+  },
+  confessionChipActive: {
+    borderColor: '#8B5FBF',
+    backgroundColor: '#8B5FBF0F',
+  },
+  confessionEmoji: { fontSize: 20 },
+  confessionLabel: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.sm,
+    color: palette.ink20,
+  },
+  confessionLabelActive: { color: '#8B5FBF' },
+  confessionSub: {
+    fontFamily: fontFamily.body,
+    fontSize: fontSize.xs,
+    color: palette.ink40,
+    marginTop: 1,
+  },
+  confessionToggle: {
+    width: 20, height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: palette.ink60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confessionToggleActive: { borderColor: '#8B5FBF' },
+  confessionToggleDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: '#8B5FBF' },
+
   // Auto Evet/Hayır
   autoOptions: {
     backgroundColor: palette.ink70,
@@ -765,6 +830,7 @@ const m = StyleSheet.create({
   },
   previewAccent: { height: 4, width: '100%' },
   previewInner: { padding: spacing.base, gap: 10 },
+  previewBadgeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   previewBadge: {
     alignSelf: 'flex-start',
     flexDirection: 'row',

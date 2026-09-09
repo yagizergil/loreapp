@@ -64,6 +64,10 @@ export interface Question {
    *  daily_question.sql) — surfaced to everyone in the city regardless of
    *  normal radius, sorted first. */
   is_daily_question?: boolean;
+  /** User opted in at posting time — "İtiraf" (confession/AITA-style)
+   *  category, leaning into anonymity's strength (see confession_category.sql).
+   *  Purely a topical tag; `type` still governs answer format. */
+  is_confession?: boolean;
 }
 
 export interface Answer {
@@ -750,7 +754,8 @@ export async function postQuestion(
   type: QuestionType,
   lat: number,
   lng: number,
-  options?: { label: string; count: number }[]
+  options?: { label: string; count: number }[],
+  isConfession = false,
 ) {
   const { data, error } = await supabase
     .from('questions')
@@ -760,6 +765,7 @@ export async function postQuestion(
       type,
       options,
       geom: `POINT(${lng} ${lat})`,
+      is_confession: isConfession,
     })
     .select()
     .single();

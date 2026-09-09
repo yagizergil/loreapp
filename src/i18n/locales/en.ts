@@ -491,7 +491,13 @@ const en = {
       open1: "What's a small thing that instantly ruins your mood?",
       open2: "What's the most underrated spot near here?",
       open3: "What's something you believed as a kid that turned out to be wrong?",
+      confession1: "I have to confess something and I need to know... am I wrong here?",
+      confession2: "Something happened near here and I've never told anyone. AITA?",
+      confession3: "I need to get this off my chest anonymously...",
     },
+    confessionLabel: '🤫 Post as a confession',
+    confessionSub:   "Anonymous, judgment-welcome — nobody knows it's you.",
+    confessionBadge: 'Confession',
   },
 
   // ─── Cluster sheet ────────────────────────────────────────────────────────────
