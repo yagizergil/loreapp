@@ -478,6 +478,12 @@ const en = {
     streakBody:  'Answer one question today to keep it going.',
     streakRiskTitle: 'Your {{streak}}-day streak ends at midnight ⏳',
     streakRiskBody:  "You haven't answered today — one quick answer keeps it alive.",
+    winback7Title:   'New questions near {{place}}',
+    winback7Body:    'People have been asking things nearby — come see what you missed.',
+    winback14Title:  'Someone might be waiting on you',
+    winback14Body:   "Questions near {{place}} are still open — your answer could be the one they need.",
+    winback30Title:  "Don't lose your progress",
+    winback30Body:   'Your karma and streak are still saved — come back and pick up right where you left off.',
   },
 
   // ─── Question badges (map pins) ────────────────────────────────────────────────

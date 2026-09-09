@@ -15,6 +15,7 @@ import {
   registerForPushNotifications,
   scheduleDailyNudge,
   scheduleStreakRiskWarning,
+  scheduleWinBackSequence,
   cancelNearbyNotification,
   getUserLocationLabel,
 } from '../lib/notifications';
@@ -52,6 +53,7 @@ export function useNotifications({ profileId, userLat, userLng }: Options) {
       ]);
       await scheduleDailyNudge(label, stats?.streak ?? 0);
       await scheduleStreakRiskWarning(stats?.streak ?? 0, todayCount > 0);
+      await scheduleWinBackSequence(label);
     })();
   // Only re-run when profile first available; location label is fetched inside
   // eslint-disable-next-line react-hooks/exhaustive-deps

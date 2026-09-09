@@ -478,6 +478,12 @@ const tr = {
     streakBody:  'Serini sürdürmek için bugün bir soru cevapla.',
     streakRiskTitle: '{{streak}} günlük serin gece yarısı bitiyor ⏳',
     streakRiskBody:  'Bugün henüz cevap vermedin — tek bir cevap serini korur.',
+    winback7Title:   '{{place}} çevresinde yeni sorular var',
+    winback7Body:    'Yakınında insanlar soru sormaya devam ediyor — neler kaçırdığına bir bak.',
+    winback14Title:  'Biri seni bekliyor olabilir',
+    winback14Body:   '{{place}} çevresindeki sorular hâlâ açık — cevabın tam ihtiyaçları olan şey olabilir.',
+    winback30Title:  'İlerlemeni kaybetme',
+    winback30Body:   'Karman ve serin hâlâ duruyor — kaldığın yerden devam etmek için geri dön.',
   },
 
   // ─── Question badges (map pins) ────────────────────────────────────────────────
