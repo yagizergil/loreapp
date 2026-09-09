@@ -109,6 +109,7 @@ const en = {
   map: {
     filterAll:    'All',
     filterNew:    'New',
+    filterTrending: '🔥 Trending',
     random:       'Random',
     appName:      'lore',
     otherCityTeaser: 'View with Premium',

@@ -109,6 +109,7 @@ const tr = {
   map: {
     filterAll:    'Tümü',
     filterNew:    'Yeni',
+    filterTrending: '🔥 Trend',
     random:       'Rastgele',
     appName:      'lore',
     otherCityTeaser: 'Premium ile gör',

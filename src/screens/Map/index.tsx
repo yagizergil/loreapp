@@ -86,7 +86,7 @@ export default function MapScreen() {
     userLat:      userLocation?.lat,
     userLng:      userLocation?.lng,
   });
-  type FilterKey = 'all' | 'new' | QuestionType;
+  type FilterKey = 'all' | 'new' | 'trending' | QuestionType;
   const [filter, setFilter] = useState<FilterKey>('all');
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -125,6 +125,11 @@ export default function MapScreen() {
       .filter((q) => {
         if (filter === 'all') return true;
         if (filter === 'new') return getQuestionBadge(q) === 'new';
+        // "Trending" — a deliberate, opt-in second lane (proximity feed stays
+        // the default) surfacing what's actually gaining traction right now:
+        // boosted questions or the same 'hot' definition used for the pin
+        // badge and the questions_around ranking tiebreak.
+        if (filter === 'trending') return !!q.is_boosted || getQuestionBadge(q) === 'hot';
         return q.type === filter;
       })
       .filter((q) => !query || q.body.toLowerCase().includes(query))
@@ -601,8 +606,9 @@ export default function MapScreen() {
         contentContainerStyle={styles.filterBarContent}
       >
         {([
-          { key: 'all',    label: t('map.filterAll') },
-          { key: 'new',    label: t('map.filterNew') },
+          { key: 'all',      label: t('map.filterAll') },
+          { key: 'trending', label: t('map.filterTrending') },
+          { key: 'new',      label: t('map.filterNew') },
           { key: 'vote',   label: t('questionType.vote') },
           { key: 'choice', label: t('questionType.choice') },
           { key: 'open',   label: t('questionType.open') },
