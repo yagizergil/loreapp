@@ -31,6 +31,13 @@ interface PremiumContextValue {
   refreshOffering: () => Promise<void>;
   purchase: (pkg: PurchasesPackage) => Promise<{ ok: boolean; cancelled: boolean; isPremium: boolean; message?: string }>;
   restore: () => Promise<{ ok: boolean; cancelled: boolean; isPremium: boolean; message?: string }>;
+  /** Re-reads the referral reward window from Supabase. The reward is
+   *  granted on a DIFFERENT device (whoever redeems the referrer's code),
+   *  so nothing pushes this update to the referrer's open app — call this
+   *  after any moment the user might plausibly have just crossed a reward
+   *  threshold (e.g. opening the Invite screen). Also polled periodically
+   *  below so it's never wrong for more than a few minutes either way. */
+  refreshReferralPremium: () => Promise<void>;
 }
 
 const PremiumContext = createContext<PremiumContextValue | null>(null);
@@ -69,9 +76,18 @@ export function PremiumProvider({
       .catch(() => {});
 
     // 1b) Referral reward window, independent of RevenueCat/mirror state.
-    fetchReferralPremiumUntil(profileId)
-      .then((iso) => { if (alive && iso) setReferralPremiumUntil(new Date(iso).getTime()); })
-      .catch(() => {});
+    // Polled (not just fetched once) because the reward is granted by a
+    // REDEMPTION ON SOMEONE ELSE'S DEVICE — this app has no push/realtime
+    // signal for "you just crossed 5 invites", so we re-check periodically
+    // rather than leaving the referrer stuck on stale state until their
+    // next cold start.
+    const loadReferralPremium = () => {
+      fetchReferralPremiumUntil(profileId)
+        .then((iso) => { if (alive) setReferralPremiumUntil(iso ? new Date(iso).getTime() : null); })
+        .catch(() => {});
+    };
+    loadReferralPremium();
+    const referralPollInterval = setInterval(loadReferralPremium, 3 * 60 * 1000);
 
     // 2) RevenueCat is authoritative.
     (async () => {
@@ -102,8 +118,13 @@ export function PremiumProvider({
       if (alive) mirror(isPremiumFromInfo(info));
     });
 
-    return () => { alive = false; unsub(); };
+    return () => { alive = false; unsub(); clearInterval(referralPollInterval); };
   }, [profileId, mirror]);
+
+  const refreshReferralPremium = useCallback(async () => {
+    const iso = await fetchReferralPremiumUntil(profileId).catch(() => null);
+    setReferralPremiumUntil(iso ? new Date(iso).getTime() : null);
+  }, [profileId]);
 
   const refreshOffering = useCallback(async () => {
     const o = await getCurrentOffering();
@@ -140,8 +161,8 @@ export function PremiumProvider({
   const effectiveIsPremium = isPremium || hasReferralPremium;
 
   const value = useMemo<PremiumContextValue>(() => ({
-    isPremium: effectiveIsPremium, ready, offering, refreshOffering, purchase, restore,
-  }), [effectiveIsPremium, ready, offering, refreshOffering, purchase, restore]);
+    isPremium: effectiveIsPremium, ready, offering, refreshOffering, purchase, restore, refreshReferralPremium,
+  }), [effectiveIsPremium, ready, offering, refreshOffering, purchase, restore, refreshReferralPremium]);
 
   return <PremiumContext.Provider value={value}>{children}</PremiumContext.Provider>;
 }

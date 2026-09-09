@@ -6,6 +6,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
 } from 'react-native-reanimated';
 import { ensureReferralCode, fetchReferralProgress, ReferralProgress } from '../../lib/supabase';
+import { usePremium } from '../../lib/PremiumContext';
 import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/tokens';
 import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { LINKS } from '../../lib/links';
@@ -22,6 +23,7 @@ const INVITES_PER_REWARD = 5;
 
 export default function InviteSheet({ profileId, onClose }: Props) {
   const { t } = useTranslation();
+  const { refreshReferralPremium } = usePremium();
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState<ReferralProgress | null>(null);
 
@@ -43,6 +45,10 @@ export default function InviteSheet({ profileId, onClose }: Props) {
         await ensureReferralCode(profileId);
         const p = await fetchReferralProgress(profileId);
         setProgress(p);
+        // The rest of the app's isPremium gate reads a value fetched once
+        // at app start / polled every few minutes — opening this screen is
+        // a good moment to force it fresh instead of waiting on the poll.
+        refreshReferralPremium();
       } catch {
         // keep the sheet usable even if this fails — share still works
         // once the code loads on a later open.
