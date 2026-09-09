@@ -359,6 +359,7 @@ const tr = {
 
   // ─── Paywall ─────────────────────────────────────────────────────────────────
   paywall: {
+    ratingCount:    '{{n}} değerlendirme',
     eyebrow:        'LORE PREMIUM',
     title:          'Sınırsız keşfet.',
     subtitle:       'Günlük cevap limitini aştın.\nPremium ile sınır yok.',

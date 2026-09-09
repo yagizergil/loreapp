@@ -21,6 +21,7 @@ import { LINKS } from '../../lib/links';
 import { track } from '../../lib/analytics';
 import { getPaywallCtaVariant } from '../../lib/experiments';
 import WaxSeal from '../../components/ui/WaxSeal';
+import { fetchAppStoreRatingForSocialProof, AppStoreRating } from '../../lib/appStoreRating';
 
 type Plan = 'monthly' | 'yearly';
 type PaywallRoute = RouteProp<RootStackParamList, 'Paywall'>;
@@ -114,6 +115,11 @@ export default function PaywallScreen() {
   const [plan, setPlan] = useState<Plan>('yearly');
   const [busy, setBusy] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [rating, setRating] = useState<AppStoreRating | null>(null);
+
+  useEffect(() => {
+    fetchAppStoreRatingForSocialProof().then(setRating);
+  }, []);
 
   // A/B experiment variant — resolved once per mount from the already-loaded
   // PostHog flag cache (no loading state needed) and orthogonal to `trigger`
@@ -341,6 +347,14 @@ export default function PaywallScreen() {
 
           <Text style={s.title}>{title}</Text>
           <Text style={s.subtitle}>{subtitle}</Text>
+          {rating && (
+            <View style={s.ratingRow}>
+              <Text style={s.ratingStars}>{'★'.repeat(Math.round(rating.average))}</Text>
+              <Text style={s.ratingText}>
+                {rating.average.toFixed(1)} · {t('paywall.ratingCount', { n: rating.count })}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* ── Benefits ─────────────────────────────────────────────────────────── */}
@@ -508,6 +522,21 @@ const s = StyleSheet.create({
     fontSize: fontSize.sm,
     color: palette.ink40,
     textAlign: 'center',
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.sm,
+  },
+  ratingStars: {
+    fontSize: fontSize.sm,
+    color: palette.warning,
+  },
+  ratingText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.xs,
+    color: palette.ink20,
   },
 
   // ── Benefits ───────────────────────────────────────────────────────────────

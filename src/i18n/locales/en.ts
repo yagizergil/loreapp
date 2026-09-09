@@ -359,6 +359,7 @@ const en = {
 
   // ─── Paywall ─────────────────────────────────────────────────────────────────
   paywall: {
+    ratingCount:    '{{n}} ratings',
     eyebrow:        'LORE PREMIUM',
     title:          'Explore without limits.',
     subtitle:       'You\'ve reached your daily answer limit.\nGo Premium for unlimited answers.',
