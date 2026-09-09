@@ -61,7 +61,7 @@ ARCHETYPES to rotate through (use a good mix across the batch, label each with o
 - debate: a mildly controversial local topic (parking, construction, rent, noise)
 - nostalgia: "burası eskiden nasıldı" / how the area has changed
 - newcomer: helpful-but-personal, for someone who just moved there
-- seasonal: time-of-day or season relevant to right now
+- seasonal: grounded in the REAL current date/season/weekday given to you in the user message (never invent a season or event — use exactly what you're told)
 - confession: a small, relatable local confession/AITA-style question
 - lookup: (use sparingly, max 1 per batch) a genuine "does X exist nearby" business-category question
 
@@ -87,6 +87,43 @@ interface GeneratedQuestion {
   options?: string[];
 }
 
+const TR_MONTHS = [
+  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+];
+const TR_WEEKDAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+
+/**
+ * Real (not invented) date context so the "seasonal" archetype can
+ * reference an actual current moment (weather season, weekday, a notable
+ * recurring period) instead of a generic, could-be-any-time-of-year
+ * question — closes the "seasonal/event-based content" gap from the
+ * retention research. Deliberately limited to safe, always-true Gregorian
+ * facts (month/season/weekday) rather than attempting a precise religious
+ * or school-calendar lookup, which risks asserting a wrong date to users.
+ */
+function getSeasonalContext(): string {
+  const now = new Date();
+  const month = now.getUTCMonth(); // 0-11
+  const monthName = TR_MONTHS[month];
+  const weekday = TR_WEEKDAYS[now.getUTCDay()];
+  const isWeekend = now.getUTCDay() === 0 || now.getUTCDay() === 6;
+
+  let season: string;
+  if ([11, 0, 1].includes(month)) season = 'kış';
+  else if ([2, 3, 4].includes(month)) season = 'ilkbahar';
+  else if ([5, 6, 7].includes(month)) season = 'yaz';
+  else season = 'sonbahar';
+
+  const notes: string[] = [];
+  if (month === 8) notes.push('okulların yeni açıldığı dönem');
+  if (month === 11) notes.push('yılın sonuna yaklaşılıyor, yeni yıl havası');
+  if ([5, 6, 7].includes(month)) notes.push('yaz sıcağı, tatil dönemi');
+  if (month === 4) notes.push('bahar, hava ısınıyor');
+
+  return `Bugün ${monthName}, ${weekday} (${isWeekend ? 'hafta sonu' : 'hafta içi'}), mevsim: ${season}.${notes.length ? ' Not: ' + notes.join(', ') + '.' : ''}`;
+}
+
 async function generateForDistrict(districtLabel: string): Promise<GeneratedQuestion[]> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -102,7 +139,10 @@ async function generateForDistrict(districtLabel: string): Promise<GeneratedQues
       messages: [
         { role: 'user', content: FEW_SHOT_EXAMPLES },
         { role: 'assistant', content: 'Anladım, bu stili takip edeceğim ama örnekteki soruları birebir tekrarlamayacağım.' },
-        { role: 'user', content: `District: ${districtLabel}\n\n${BATCH_SIZE} tane farklı, çeşitli arketiplerden soru üret.` },
+        {
+          role: 'user',
+          content: `District: ${districtLabel}\n${getSeasonalContext()}\n\n${BATCH_SIZE} tane farklı, çeşitli arketiplerden soru üret. "seasonal" arketipindeki soru(lar) yukarıdaki gerçek tarih/mevsim bilgisini yansıtsın (örn. kış ayında "deniz sıcak mı" gibi mevsimsiz bir soru yazma).`,
+        },
       ],
     }),
   });
