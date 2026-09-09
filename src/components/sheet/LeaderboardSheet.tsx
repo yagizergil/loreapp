@@ -12,6 +12,7 @@ import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/toke
 import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import Avatar from '../ui/Avatar';
 import { getKarmaTier } from '../../lib/karma';
+import { leagueIndexForRank, getLeagueTier } from '../../lib/leagues';
 import { track } from '../../lib/analytics';
 import { paywallEvents } from '../../lib/premiumEvents';
 import { useTranslation } from 'react-i18next';
@@ -117,9 +118,29 @@ export default function LeaderboardSheet({ profileId, isPremium, onClose }: Prop
   const myOwnRow = entries.find((e) => e.profile_id === profileId);
   const showMyRankFooter = !isPremium && myRank && (!myOwnRow || myRank.rank > FREE_VISIBLE_ROWS);
 
-  const renderItem = useCallback(({ item }: { item: LeaderboardEntry }) => (
-    <LeaderboardRow item={item} isMe={item.profile_id === profileId} />
-  ), [profileId]);
+  const myLeagueIndex = myOwnRow ? leagueIndexForRank(myOwnRow.rank) : (myRank ? leagueIndexForRank(myRank.rank) : null);
+
+  const renderItem = useCallback(({ item, index }: { item: LeaderboardEntry; index: number }) => {
+    const leagueIndex = leagueIndexForRank(item.rank);
+    const isNewLeague = index === 0 || leagueIndex !== leagueIndexForRank(entries[index - 1].rank);
+    const tier = getLeagueTier(leagueIndex);
+    return (
+      <>
+        {isNewLeague && (
+          <View style={[styles.leagueHeader, leagueIndex === myLeagueIndex && styles.leagueHeaderMine]}>
+            <View style={[styles.leagueDot, { backgroundColor: tier.color }]} />
+            <Text style={[styles.leagueHeaderText, { color: tier.color }]}>
+              {t(tier.label, { n: leagueIndex - 3 })}
+            </Text>
+            {leagueIndex === myLeagueIndex && (
+              <Text style={styles.leagueHeaderMineText}>{t('league.yours')}</Text>
+            )}
+          </View>
+        )}
+        <LeaderboardRow item={item} isMe={item.profile_id === profileId} />
+      </>
+    );
+  }, [profileId, entries, myLeagueIndex, t]);
 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
@@ -301,6 +322,34 @@ const styles = StyleSheet.create({
   tierBadgeText: {
     fontFamily: fontFamily.bodySemiBold,
     fontSize: 10,
+  },
+  leagueHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  leagueHeaderMine: {
+    backgroundColor: palette.accent + '0F',
+  },
+  leagueDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  leagueHeaderText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  leagueHeaderMineText: {
+    fontFamily: fontFamily.body,
+    fontSize: 10,
+    color: palette.ink40,
+    marginLeft: 'auto' as any,
   },
   unlockBtn: {
     marginTop: spacing.sm,

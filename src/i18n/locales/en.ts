@@ -81,6 +81,16 @@ const en = {
     yourRank:     "You're #{{rank}}",
   },
 
+  // ─── Leagues ────────────────────────────────────────────────────────────────
+  league: {
+    diamond: 'Diamond League',
+    gold:    'Gold League',
+    silver:  'Silver League',
+    bronze:  'Bronze League',
+    group:   'Group {{n}}',
+    yours:   'Your league',
+  },
+
   // ─── Invite / referral ──────────────────────────────────────────────────────
   invite: {
     rowLabel:      'Invite Friends',
@@ -177,6 +187,11 @@ const en = {
     viewersUnlockCta:  'See who viewed this with Pro',
     viewersTitle:      'Who Viewed This',
     viewersEmpty:      'No one else has viewed this yet.',
+  },
+
+  // ─── Surprise karma ───────────────────────────────────────────────────────────
+  surpriseKarma: {
+    toast: '🎉 Lucky answer! +{{amount}} bonus karma',
   },
 
   // ─── Boost ──────────────────────────────────────────────────────────────────

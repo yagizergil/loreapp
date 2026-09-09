@@ -81,6 +81,16 @@ const tr = {
     yourRank:     'Sıran: #{{rank}}',
   },
 
+  // ─── Ligler ─────────────────────────────────────────────────────────────────
+  league: {
+    diamond: 'Elmas Lig',
+    gold:    'Altın Lig',
+    silver:  'Gümüş Lig',
+    bronze:  'Bronz Lig',
+    group:   '{{n}}. Grup',
+    yours:   'Senin ligin',
+  },
+
   // ─── Davet / referans ───────────────────────────────────────────────────────
   invite: {
     rowLabel:      'Arkadaşlarını Davet Et',
@@ -177,6 +187,11 @@ const tr = {
     viewersUnlockCta:  'Pro ile kimin görüntülediğini gör',
     viewersTitle:      'Kim Görüntüledi',
     viewersEmpty:      'Henüz başka kimse görüntülemedi.',
+  },
+
+  // ─── Sürpriz karma ────────────────────────────────────────────────────────────
+  surpriseKarma: {
+    toast: '🎉 Şanslı cevap! +{{amount}} bonus karma',
   },
 
   // ─── Boost ──────────────────────────────────────────────────────────────────

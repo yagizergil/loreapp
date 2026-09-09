@@ -24,8 +24,9 @@ import {
   Question, QuestionType, Answer, Profile, AuthorReputation,
   fetchAnswers, submitAnswer, fetchProfiles, countTodayAnswers, FREE_DAILY_ANSWER_LIMIT,
   fetchBlockedIds, toggleAnswerUpvote, fetchUpvotedAnswerIds, deleteOwnAnswer, logQuestionView,
-  fetchAuthorKarma,
+  fetchAuthorKarma, maybeGrantSurpriseKarma,
 } from '../../lib/supabase';
+import { surpriseKarmaEvents } from '../../lib/surpriseKarmaEvents';
 import { paywallEvents } from '../../lib/premiumEvents';
 import QuestionViewersRow from '../../components/QuestionViewersRow';
 import BoostRow from '../../components/BoostRow';
@@ -631,6 +632,7 @@ export default function AnswersScreen() {
       setAnswered(true);
       track('answer_submitted', { type: question.type });
       cancelStreakRiskWarning();
+      maybeGrantSurpriseKarma(profileId).then((r) => { if (r.granted) surpriseKarmaEvents.show(r.amount); });
       firstActionEvent.notify();
     } catch (e: any) {
       if (e?.code === '23505') {
@@ -663,6 +665,7 @@ export default function AnswersScreen() {
       setAnswered(true);
       track('answer_submitted', { type: question.type });
       cancelStreakRiskWarning();
+      maybeGrantSurpriseKarma(profileId).then((r) => { if (r.granted) surpriseKarmaEvents.show(r.amount); });
       firstActionEvent.notify();
     } catch (e: any) {
       if (e?.code === '23505') {

@@ -14,6 +14,7 @@ import { PremiumProvider } from '../lib/PremiumContext';
 import { mapAskEvent } from '../lib/mapEvents';
 import { authEvents } from '../lib/authEvents';
 import { paywallEvents, PaywallTrigger } from '../lib/premiumEvents';
+import SurpriseKarmaToast from '../components/SurpriseKarmaToast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationEvents } from '../lib/notificationEvents';
 import { UnreadCountsProvider, useUnreadCounts } from '../lib/UnreadCountsContext';
@@ -361,6 +362,7 @@ export default function Navigation({ initialProfile }: Props) {
                 options={{ animation: 'slide_from_right', contentStyle: { backgroundColor: palette.ink90 } }}
               />
             </Stack.Navigator>
+            <SurpriseKarmaToast />
           </UnreadCountsProvider>
           </PremiumProvider>
         </ProfileProvider>

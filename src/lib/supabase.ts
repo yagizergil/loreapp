@@ -429,6 +429,23 @@ export async function boostQuestion(
   return { ok: row.ok, remaining: row.remaining, boostedUntil: row.boosted_until };
 }
 
+export interface SurpriseKarmaResult {
+  granted: boolean;
+  amount: number;
+  bonusKarma: number;
+}
+
+/** Server-rolled (not client-rolled, so it can't be gamed) chance of a
+ *  bonus karma popup after answering — the "variable reward" the app was
+ *  otherwise missing (karma/streaks alone are fully predictable). Safe to
+ *  call after every answer; the RPC itself caps it to once per 24h. */
+export async function maybeGrantSurpriseKarma(profileId: string): Promise<SurpriseKarmaResult> {
+  const { data, error } = await supabase.rpc('maybe_grant_surprise_karma', { p_profile_id: profileId });
+  if (error || !data?.length) return { granted: false, amount: 0, bonusKarma: 0 };
+  const row = data[0] as { granted: boolean; amount: number; bonus_karma: number };
+  return { granted: row.granted, amount: row.amount, bonusKarma: row.bonus_karma };
+}
+
 /** "N people active nearby" for the Map density badge — always >= 1
  *  (see nearby_active_user_count.sql for why the floor is honest, not fake). */
 export async function fetchNearbyActiveUserCount(
@@ -663,13 +680,17 @@ export async function postQuestion(
 export async function fetchUserStats(
   userId: string,
 ): Promise<{ questions: number; answers: number; streak: number; karma: number }> {
-  const [qRes, aRes] = await Promise.all([
+  const [qRes, aRes, pRes] = await Promise.all([
     supabase.from('questions').select('id', { count: 'exact', head: true }).eq('author_id', userId),
     supabase.from('answers').select('created_at, upvotes', { count: 'exact' }).eq('author_id', userId).order('created_at', { ascending: false }),
+    supabase.from('profiles').select('bonus_karma').eq('id', userId).maybeSingle(),
   ]);
   const rows = (aRes.data ?? []) as { created_at: string; upvotes: number | null }[];
   const timestamps = rows.map((row) => row.created_at);
-  const karma = rows.reduce((sum, row) => sum + (row.upvotes ?? 0), 0);
+  // + bonus_karma: surprise-reward credits from maybe_grant_surprise_karma,
+  // same "earned, occasionally topped up" karma the rest of the app reads
+  // via batch_author_karma/city_leaderboard — kept in sync with those.
+  const karma = rows.reduce((sum, row) => sum + (row.upvotes ?? 0), 0) + ((pRes.data as any)?.bonus_karma ?? 0);
   return {
     questions: qRes.count ?? 0,
     answers: aRes.count ?? 0,

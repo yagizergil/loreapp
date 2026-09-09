@@ -12,6 +12,9 @@
 -- Supabase SQL Editor'da bir kez çalıştır. Idempotent (tekrar çalıştırılabilir).
 -- ════════════════════════════════════════════════════════════════════════════
 
+-- karma includes bonus_karma (surprise-reward credits, see
+-- surprise_karma.sql) so this stays the single definition of "karma" the
+-- rest of the app relies on.
 drop function if exists batch_author_karma(uuid[]);
 create or replace function batch_author_karma(p_author_ids uuid[])
 returns table (
@@ -22,12 +25,12 @@ returns table (
 language sql stable as $$
   select
     p.id as author_id,
-    coalesce(sum(a.upvotes), 0) as karma,
+    coalesce(sum(a.upvotes), 0) + coalesce(p.bonus_karma, 0) as karma,
     coalesce(p.is_premium, false) as is_premium
   from profiles p
   left join answers a on a.author_id = p.id
   where p.id = any(p_author_ids)
-  group by p.id, p.is_premium;
+  group by p.id, p.is_premium, p.bonus_karma;
 $$;
 
 grant execute on function batch_author_karma(uuid[]) to anon, authenticated;

@@ -7,7 +7,8 @@ import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withTiming, withSequence, interpolate,
 } from 'react-native-reanimated';
-import { Question, Answer, fetchAnswers, submitAnswer, countTodayAnswers, FREE_DAILY_ANSWER_LIMIT, deleteOwnQuestion } from '../../lib/supabase';
+import { Question, Answer, fetchAnswers, submitAnswer, countTodayAnswers, FREE_DAILY_ANSWER_LIMIT, deleteOwnQuestion, maybeGrantSurpriseKarma } from '../../lib/supabase';
+import { surpriseKarmaEvents } from '../../lib/surpriseKarmaEvents';
 import { moderationMenu, reportQuestionFlow } from '../../lib/moderation';
 import { paywallEvents } from '../../lib/premiumEvents';
 import { usePremium } from '../../lib/PremiumContext';
@@ -158,6 +159,7 @@ export default function QuestionSheet({
       setLocalAnswered(true);
       track('answer_submitted', { type: question.type });
       cancelStreakRiskWarning();
+      maybeGrantSurpriseKarma(profileId).then((r) => { if (r.granted) surpriseKarmaEvents.show(r.amount); });
       firstActionEvent.notify();
       maybeRequestReviewAfterAnswer(track);
       onAnswered(question.id);
@@ -196,6 +198,7 @@ export default function QuestionSheet({
       setLocalAnswered(true);
       track('answer_submitted', { type: question.type });
       cancelStreakRiskWarning();
+      maybeGrantSurpriseKarma(profileId).then((r) => { if (r.granted) surpriseKarmaEvents.show(r.amount); });
       firstActionEvent.notify();
       maybeRequestReviewAfterAnswer(track);
       onAnswered(question.id);

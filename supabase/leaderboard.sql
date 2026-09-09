@@ -55,14 +55,14 @@ language sql stable as $$
     row_number() over (
       order by count(a.id) filter (where a.created_at > now() - make_interval(days => p_days)) desc, p.id
     ) as rank,
-    coalesce(sum(a.upvotes), 0) as karma,
+    coalesce(sum(a.upvotes), 0) + coalesce(p.bonus_karma, 0) as karma,
     coalesce(p.is_premium, false) as is_premium
   from profiles p
   join answers a on a.author_id = p.id
   where coalesce(p.is_bot, false) = false
     and p.last_geom is not null
     and st_dwithin(p.last_geom, st_makepoint(p_lng, p_lat)::geography, p_radius_m)
-  group by p.id, p.nickname, p.avatar, p.avatar_url, p.is_premium
+  group by p.id, p.nickname, p.avatar, p.avatar_url, p.is_premium, p.bonus_karma
   having count(a.id) filter (where a.created_at > now() - make_interval(days => p_days)) > 0
   order by answer_count desc, p.id
   limit least(coalesce(p_limit, 50), case when p_is_premium then 100 else 3 end);
