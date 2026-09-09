@@ -76,8 +76,14 @@ export async function getCurrentOffering(): Promise<PurchasesOffering | null> {
   if (!configured) return null;
   try {
     const offerings = await Purchases.getOfferings();
+    if (!offerings.current) {
+      console.warn('[purchases] getOfferings() succeeded but returned no current offering — check that an offering is marked "current" in RevenueCat and that its products are approved/live in App Store Connect.');
+    } else if (!offerings.current.monthly && !offerings.current.annual) {
+      console.warn('[purchases] current offering has no monthly/annual package attached — check RevenueCat offering package config and App Store Connect product status.');
+    }
     return offerings.current ?? null;
-  } catch {
+  } catch (e) {
+    console.warn('[purchases] getOfferings() threw:', e);
     return null;
   }
 }

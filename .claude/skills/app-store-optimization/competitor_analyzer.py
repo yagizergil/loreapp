@@ -1,0 +1,1 @@
+../aso_skill/competitors.py
