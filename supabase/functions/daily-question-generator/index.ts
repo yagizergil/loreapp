@@ -28,10 +28,14 @@ const MODEL = 'claude-haiku-4-5-20251001';
 const OFFICIAL_AUTHOR_ID = '00000000-0000-0000-0000-000000000001'; // "Lore" account
 const MAX_CITIES_PER_RUN = 10;
 
-const SYSTEM_PROMPT = `You write ONE "Question of the Day" for Lore, a Turkish anonymous location-based Q&A app. This single question will be shown to EVERY active user across an entire city at once — it's a shared, synchronized daily moment (like a city-wide icebreaker), not a personal or hyperlocal one.
+const SYSTEM_PROMPT = `You write ONE "Question of the Day" for Lore, a global anonymous location-based Q&A app. This single question will be shown to EVERY active user across an entire city at once — it's a shared, synchronized daily moment (like a city-wide icebreaker), not a personal or hyperlocal one.
+
+LANGUAGE — read carefully:
+- First, silently determine the natural everyday language of the people who live in the given city (e.g. İstanbul → Turkish, Berlin → German, Paris → French, a generic or ambiguous English-speaking city → English).
+- Write the question body AND every option label in that local language, natural and casual — the way a real local person actually types on their phone, never formal/written-register language.
+- If you cannot confidently identify the local language for the given name, default to English.
 
 RULES:
-- Write in natural, casual Turkish.
 - The question must work for ANYONE in the city, regardless of which neighborhood they're in — no hyperlocal references to a specific district.
 - It should be genuinely engaging city-wide: an opinion, a debate, a curiosity, a "would you rather", or a light confession-style question that makes people want to see what others answered.
 - NEVER invent specific business/street names.
@@ -40,7 +44,7 @@ RULES:
 
 Respond with ONLY a single JSON object, no prose, no markdown fences:
 {"type": "vote"|"choice"|"open", "body": "...", "options": ["...", "..."] }
-- "options" ONLY for type "choice" — 2 to 4 short labels, each under 20 characters.`;
+- "options" is REQUIRED for "vote" (exactly 2 labels — that language's natural equivalent of "Yes"/"No") and "choice" (2 to 4 short labels, each under 20 characters), and OMITTED for "open".`;
 
 interface DailyQuestion {
   type: 'vote' | 'choice' | 'open';
@@ -61,7 +65,7 @@ async function generateForCity(cityLabel: string): Promise<DailyQuestion | null>
       max_tokens: 400,
       system: SYSTEM_PROMPT,
       messages: [
-        { role: 'user', content: `City: ${cityLabel}\n\nBugünün tek şehir çapında sorusunu üret.` },
+        { role: 'user', content: `City: ${cityLabel}\n\nGenerate today's single city-wide question, in this city's local language.` },
       ],
     }),
   });
@@ -86,7 +90,13 @@ async function generateForCity(cityLabel: string): Promise<DailyQuestion | null>
 }
 
 function toOptionsJson(q: DailyQuestion): { label: string; count: number }[] | null {
-  if (q.type === 'vote') return [{ label: 'Evet', count: 0 }, { label: 'Hayır', count: 0 }];
+  if (q.type === 'vote') {
+    // Model supplies the localized Yes/No pair (see LANGUAGE section of
+    // SYSTEM_PROMPT) — never hardcode a language here.
+    const opts = (q.options ?? []).filter((o) => typeof o === 'string' && o.trim().length > 0 && o.length <= 20);
+    if (opts.length >= 2) return opts.slice(0, 2).map((label) => ({ label, count: 0 }));
+    return [{ label: 'Yes', count: 0 }, { label: 'No', count: 0 }];
+  }
   if (q.type === 'choice') {
     const opts = (q.options ?? []).filter((o) => typeof o === 'string' && o.trim().length > 0 && o.length <= 20);
     if (opts.length < 2) return null;

@@ -42,42 +42,47 @@ const BATCH_SIZE = 8;
 // Cap districts processed per run — cost/time control.
 const MAX_DISTRICTS_PER_RUN = 15;
 
-const SYSTEM_PROMPT = `You write short, hyperlocal social-app questions for Lore, a Turkish anonymous neighborhood Q&A app (like a mix of Nextdoor and Yik Yak, but map-based — people see and answer questions from others physically near them).
+const SYSTEM_PROMPT = `You write short, hyperlocal social-app questions for Lore, a global anonymous neighborhood Q&A app (like a mix of Nextdoor and Yik Yak, but map-based — people see and answer questions from others physically near them).
 
 You are given ONE district/city name. Write questions a REAL PERSON who actually lives there might post to their neighbors — never a tourist-guide tone, never a customer-service tone.
 
+LANGUAGE — read carefully:
+- First, silently determine the natural everyday language of the people who live in the given district/city (e.g. Kadıköy/İstanbul → Turkish, Berlin → German, Paris → French, a generic or ambiguous English-speaking city → English).
+- Write the ENTIRE batch — every question body AND every option label — in that local language, natural and casual: contractions, everyday phrasing, the way a real local person actually types on their phone, never formal/written-register language.
+- If you cannot confidently identify the local language for the given name, default to English.
+- Never mix languages within one question.
+
 STRICT RULES:
-- Write in Turkish, natural and casual — contractions, everyday phrasing, the way a person actually types on their phone, not formal written Turkish.
-- NEVER invent a specific business, cafe, restaurant, street, or landmark name you weren't given. You were NOT given any real place names — refer to categories generically ("mahalledeki fırın", "şu köşedeki büfe") if needed, never a made-up proper noun.
-- NEVER use these clichéd openers/phrases: "Bu çevrede", "Buralarda", "Bu mahallede" as a sentence-starting crutch on every question — vary how each question opens. Do not overuse the vague "buralarda/bu çevrede" framing that makes every question sound like a template.
+- NEVER invent a specific business, cafe, restaurant, street, or landmark name you weren't given. You were NOT given any real place names — refer to categories generically (e.g. "the bakery in the neighborhood", "that corner shop") if needed, never a made-up proper noun.
+- NEVER use a translated equivalent of "Around here", "In this neighborhood", "In this area" as a sentence-starting crutch on every question — vary how each question opens. Do not overuse that vague framing that makes every question sound like a template.
 - NEVER write generic "is there X nearby" business-lookup questions (pharmacy/cafe/parking/gym) as your default. At most 1 of your batch may be that type — the rest must be genuine opinions, debates, curiosities, or personal takes about the area.
 - Vary sentence length and structure. Mix short blunt questions with longer, more specific ones. Don't make every question the same shape.
 - Each question must feel like it could ONLY be about this specific kind of place — reference the district's plausible character (dense/quiet, coastal/inland, student/family/business area, based on what you know about that name) without asserting invented facts.
 
 ARCHETYPES to rotate through (use a good mix across the batch, label each with one of these keys):
-- opinion: a hot-take or opinion about living there ("burada yaşamanın en can sıkıcı yanı ne?")
+- opinion: a hot-take or opinion about living there
 - would_you_rather: two neighborhood-flavored tradeoffs
-- curiosity: mild curiosity about neighbors/area ("bu sokakta oturanlar aslında ne iş yapıyor sizce?")
+- curiosity: mild curiosity about neighbors/area
 - debate: a mildly controversial local topic (parking, construction, rent, noise)
-- nostalgia: "burası eskiden nasıldı" / how the area has changed
+- nostalgia: "what was this place like before" / how the area has changed
 - newcomer: helpful-but-personal, for someone who just moved there
-- seasonal: grounded in the REAL current date/season/weekday given to you in the user message (never invent a season or event — use exactly what you're told)
+- seasonal: grounded in the REAL current date/season/weekday given to you in the user message (never invent a season or event — use exactly what you're told; if the given city is in the Southern Hemisphere, invert the season accordingly)
 - confession: a small, relatable local confession/AITA-style question
 - lookup: (use sparingly, max 1 per batch) a genuine "does X exist nearby" business-category question
 
 Respond with ONLY a JSON array, no prose before or after, no markdown fences. Each item:
 {"type": "vote"|"choice"|"open", "body": "...", "archetype": "...", "options": ["...", "..."] }
-- "options" ONLY for type "choice" — exactly 2 to 4 short option labels (each under 20 characters), NOT for "vote" or "open".
+- "options" is REQUIRED for "vote" (exactly 2 labels — that language's natural equivalent of "Yes"/"No") and "choice" (2 to 4 short labels, each under 20 characters), and OMITTED for "open".
 - "body" max 120 characters.
 - Every item must have a DIFFERENT archetype from the others in the batch where possible.`;
 
-const FEW_SHOT_EXAMPLES = `Örnek (Kadıköy, İstanbul için, sadece stil referansı — bunları tekrar üretme):
+const FEW_SHOT_EXAMPLES = `Example (for Kadıköy, İstanbul — a style/format reference only, in the language that city calls for; never repeat these verbatim, and always match the batch's own language to whatever city you're actually given):
 [
   {"type":"open","body":"Bu sokaklarda büyüyenler şimdi nerede yaşıyor sizce, hala buralarda mı?","archetype":"curiosity"},
-  {"type":"vote","body":"Vapur iskelesine yürüyerek gitmek mi daha keyifli, dolmuşla mı?","archetype":"opinion"},
+  {"type":"vote","body":"Vapur iskelesine yürüyerek gitmek mi daha keyifli, dolmuşla mı?","archetype":"opinion","options":["Evet","Hayır"]},
   {"type":"choice","body":"Akşamüstü buralarda en çok neye denk gelirsin?","archetype":"seasonal","options":["Kalabalık vapur","Trafik","Boş sokaklar","Müzik sesi"]},
   {"type":"open","body":"Burada 10 yıl önce ne vardı da şimdi yok, en çok neyi özlüyorsun?","archetype":"nostalgia"},
-  {"type":"vote","body":"Komşuların gürültüsünden şikayet etmek ayıp mı sence?","archetype":"confession"}
+  {"type":"vote","body":"Komşuların gürültüsünden şikayet etmek ayıp mı sence?","archetype":"confession","options":["Evet","Hayır"]}
 ]`;
 
 interface GeneratedQuestion {
@@ -87,11 +92,11 @@ interface GeneratedQuestion {
   options?: string[];
 }
 
-const TR_MONTHS = [
-  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
 ];
-const TR_WEEKDAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 /**
  * Real (not invented) date context so the "seasonal" archetype can
@@ -101,27 +106,33 @@ const TR_WEEKDAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', '
  * retention research. Deliberately limited to safe, always-true Gregorian
  * facts (month/season/weekday) rather than attempting a precise religious
  * or school-calendar lookup, which risks asserting a wrong date to users.
+ *
+ * Kept in English regardless of the target district's language — this is
+ * factual input for the model, not output; the model translates/localizes
+ * it into whatever language it's writing the batch in (see SYSTEM_PROMPT's
+ * LANGUAGE section), and inverts the season itself for Southern Hemisphere
+ * cities.
  */
 function getSeasonalContext(): string {
   const now = new Date();
   const month = now.getUTCMonth(); // 0-11
-  const monthName = TR_MONTHS[month];
-  const weekday = TR_WEEKDAYS[now.getUTCDay()];
+  const monthName = MONTHS[month];
+  const weekday = WEEKDAYS[now.getUTCDay()];
   const isWeekend = now.getUTCDay() === 0 || now.getUTCDay() === 6;
 
-  let season: string;
-  if ([11, 0, 1].includes(month)) season = 'kış';
-  else if ([2, 3, 4].includes(month)) season = 'ilkbahar';
-  else if ([5, 6, 7].includes(month)) season = 'yaz';
-  else season = 'sonbahar';
+  let season: string; // Northern Hemisphere; invert for Southern Hemisphere cities
+  if ([11, 0, 1].includes(month)) season = 'winter';
+  else if ([2, 3, 4].includes(month)) season = 'spring';
+  else if ([5, 6, 7].includes(month)) season = 'summer';
+  else season = 'autumn';
 
   const notes: string[] = [];
-  if (month === 8) notes.push('okulların yeni açıldığı dönem');
-  if (month === 11) notes.push('yılın sonuna yaklaşılıyor, yeni yıl havası');
-  if ([5, 6, 7].includes(month)) notes.push('yaz sıcağı, tatil dönemi');
-  if (month === 4) notes.push('bahar, hava ısınıyor');
+  if (month === 8) notes.push('schools just started the new term');
+  if (month === 11) notes.push('year-end, new year mood approaching');
+  if ([5, 6, 7].includes(month)) notes.push('summer heat, holiday season');
+  if (month === 4) notes.push('spring, weather warming up');
 
-  return `Bugün ${monthName}, ${weekday} (${isWeekend ? 'hafta sonu' : 'hafta içi'}), mevsim: ${season}.${notes.length ? ' Not: ' + notes.join(', ') + '.' : ''}`;
+  return `Today is ${monthName}, ${weekday} (${isWeekend ? 'weekend' : 'weekday'}), Northern Hemisphere season: ${season}.${notes.length ? ' Note: ' + notes.join(', ') + '.' : ''}`;
 }
 
 async function generateForDistrict(districtLabel: string): Promise<GeneratedQuestion[]> {
@@ -138,10 +149,10 @@ async function generateForDistrict(districtLabel: string): Promise<GeneratedQues
       system: SYSTEM_PROMPT,
       messages: [
         { role: 'user', content: FEW_SHOT_EXAMPLES },
-        { role: 'assistant', content: 'Anladım, bu stili takip edeceğim ama örnekteki soruları birebir tekrarlamayacağım.' },
+        { role: 'assistant', content: "Understood — I'll follow this style and format, adapt the language to whichever district I'm given, and never repeat the example questions verbatim." },
         {
           role: 'user',
-          content: `District: ${districtLabel}\n${getSeasonalContext()}\n\n${BATCH_SIZE} tane farklı, çeşitli arketiplerden soru üret. "seasonal" arketipindeki soru(lar) yukarıdaki gerçek tarih/mevsim bilgisini yansıtsın (örn. kış ayında "deniz sıcak mı" gibi mevsimsiz bir soru yazma).`,
+          content: `District: ${districtLabel}\n${getSeasonalContext()}\n\nGenerate ${BATCH_SIZE} different questions across a good mix of archetypes, in the local language of the given district. Any "seasonal" archetype question(s) must reflect the real date/season info above (e.g. don't write a season-agnostic "is the sea warm" question in winter).`,
         },
       ],
     }),
@@ -174,7 +185,12 @@ async function generateForDistrict(districtLabel: string): Promise<GeneratedQues
 
 function toOptionsJson(q: GeneratedQuestion): { label: string; count: number }[] | null {
   if (q.type === 'vote') {
-    return [{ label: 'Evet', count: 0 }, { label: 'Hayır', count: 0 }];
+    // Model supplies the localized Yes/No pair (see LANGUAGE section of
+    // SYSTEM_PROMPT) — never hardcode a language here. Falls back to
+    // English if it somehow omitted them.
+    const opts = (q.options ?? []).filter((o) => typeof o === 'string' && o.trim().length > 0 && o.length <= 20);
+    if (opts.length >= 2) return opts.slice(0, 2).map((label) => ({ label, count: 0 }));
+    return [{ label: 'Yes', count: 0 }, { label: 'No', count: 0 }];
   }
   if (q.type === 'choice') {
     const opts = (q.options ?? []).filter((o) => typeof o === 'string' && o.trim().length > 0 && o.length <= 20);
