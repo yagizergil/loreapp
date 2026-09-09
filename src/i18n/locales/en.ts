@@ -479,12 +479,29 @@ const en = {
     streakBody:  'Answer one question today to keep it going.',
     streakRiskTitle: 'Your {{streak}}-day streak ends at midnight ⏳',
     streakRiskBody:  "You haven't answered today — one quick answer keeps it alive.",
-    winback7Title:   'New questions near {{place}}',
-    winback7Body:    'People have been asking things nearby — come see what you missed.',
-    winback14Title:  'Someone might be waiting on you',
-    winback14Body:   "Questions near {{place}} are still open — your answer could be the one they need.",
-    winback30Title:  "Don't lose your progress",
-    winback30Body:   'Your karma and streak are still saved — come back and pick up right where you left off.',
+    // Cohort-segmented win-back copy (see resolveWinBackCohort) — a poster
+    // cares about THEIR question's replies, an answerer cares about new
+    // things to weigh in on, a lurker needs a lower-friction generic nudge.
+    winback7_lurkerTitle:    'New questions near {{place}}',
+    winback7_lurkerBody:     'People have been asking things nearby — come see what you missed.',
+    winback14_lurkerTitle:   'Someone might be waiting on you',
+    winback14_lurkerBody:    "Questions near {{place}} are still open — your answer could be the one they need.",
+    winback30_lurkerTitle:   "Don't lose your progress",
+    winback30_lurkerBody:    'Your karma and streak are still saved — come back and pick up right where you left off.',
+
+    winback7_answererTitle:  'New questions to weigh in on',
+    winback7_answererBody:   'People near {{place}} are asking things again — your take might be the best one.',
+    winback14_answererTitle: 'Your answers are missed',
+    winback14_answererBody:  "Questions near {{place}} could use a good answer — like the ones you've been giving.",
+    winback30_answererTitle: "Don't lose your karma tier",
+    winback30_answererBody:  'Your karma and streak are still saved — come back and keep building your reputation.',
+
+    winback7_posterTitle:    'Your question might have new replies',
+    winback7_posterBody:     "People near {{place}} may have answered what you asked — go check.",
+    winback14_posterTitle:   'Still curious what people said?',
+    winback14_posterBody:    'Your question is still up — come see who answered.',
+    winback30_posterTitle:   "Don't lose your progress",
+    winback30_posterBody:    'Your questions, karma, and streak are still saved — come back and post a new one.',
   },
 
   // ─── Question badges (map pins) ────────────────────────────────────────────────

@@ -479,12 +479,30 @@ const tr = {
     streakBody:  'Serini sürdürmek için bugün bir soru cevapla.',
     streakRiskTitle: '{{streak}} günlük serin gece yarısı bitiyor ⏳',
     streakRiskBody:  'Bugün henüz cevap vermedin — tek bir cevap serini korur.',
-    winback7Title:   '{{place}} çevresinde yeni sorular var',
-    winback7Body:    'Yakınında insanlar soru sormaya devam ediyor — neler kaçırdığına bir bak.',
-    winback14Title:  'Biri seni bekliyor olabilir',
-    winback14Body:   '{{place}} çevresindeki sorular hâlâ açık — cevabın tam ihtiyaçları olan şey olabilir.',
-    winback30Title:  'İlerlemeni kaybetme',
-    winback30Body:   'Karman ve serin hâlâ duruyor — kaldığın yerden devam etmek için geri dön.',
+    // Kohort bazlı win-back metinleri (bkz. resolveWinBackCohort) — soru
+    // sorucu kendi sorusunun cevaplarını merak eder, cevaplayıcı yeni fikir
+    // beyan edecek soru arar, hiç katılmamış kullanıcıya genel/düşük
+    // sürtünmeli bir çağrı gerekir.
+    winback7_lurkerTitle:    '{{place}} çevresinde yeni sorular var',
+    winback7_lurkerBody:     'Yakınında insanlar soru sormaya devam ediyor — neler kaçırdığına bir bak.',
+    winback14_lurkerTitle:   'Biri seni bekliyor olabilir',
+    winback14_lurkerBody:    '{{place}} çevresindeki sorular hâlâ açık — cevabın tam ihtiyaçları olan şey olabilir.',
+    winback30_lurkerTitle:   'İlerlemeni kaybetme',
+    winback30_lurkerBody:    'Karman ve serin hâlâ duruyor — kaldığın yerden devam etmek için geri dön.',
+
+    winback7_answererTitle:  'Fikrini bekleyen yeni sorular var',
+    winback7_answererBody:   '{{place}} çevresinde insanlar yine soru soruyor — senin cevabın en iyisi olabilir.',
+    winback14_answererTitle: 'Cevapların özlendi',
+    winback14_answererBody:  '{{place}} çevresindeki sorular senin gibi iyi cevaplara ihtiyaç duyuyor.',
+    winback30_answererTitle: 'Karma seviyeni kaybetme',
+    winback30_answererBody:  'Karman ve serin hâlâ duruyor — geri dön, itibarını büyütmeye devam et.',
+
+    winback7_posterTitle:    'Sorunun yeni cevapları olabilir',
+    winback7_posterBody:     '{{place}} çevresindeki insanlar sorduğun şeyi cevaplamış olabilir — bir bak.',
+    winback14_posterTitle:   'İnsanlar ne demiş merak etmiyor musun?',
+    winback14_posterBody:    'Sorun hâlâ açık duruyor — kim cevap vermiş gel gör.',
+    winback30_posterTitle:   'İlerlemeni kaybetme',
+    winback30_posterBody:    'Soruların, karman ve serin hâlâ duruyor — geri dön, yeni bir soru sor.',
   },
 
   // ─── Question badges (map pins) ────────────────────────────────────────────────

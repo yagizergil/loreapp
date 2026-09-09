@@ -283,6 +283,23 @@ export async function cancelStreakRiskWarning() {
 }
 
 /**
+ * Which win-back copy a user sees — segmented messaging (vs. one generic
+ * broadcast) is the single most cited push-notification lift in the
+ * research (personalized pushes ~4x click-through vs. generic). A poster
+ * cares about THEIR question getting seen; an answerer cares about new
+ * things to weigh in on; a lurker who's never done either needs a lower-
+ * friction "just come look" nudge, not content framed around content they
+ * don't have.
+ */
+export type WinBackCohort = 'poster' | 'answerer' | 'lurker';
+
+export function resolveWinBackCohort(questionsPosted: number, answersGiven: number): WinBackCohort {
+  if (questionsPosted > 0) return 'poster';
+  if (answersGiven > 0) return 'answerer';
+  return 'lurker';
+}
+
+/**
  * 3-stage win-back sequence for lapsed users (documented pattern: escalating
  * specificity/incentive at 7/14/30 days inactive, ~20-30% average recovery
  * rate for structured win-back campaigns vs. single generic reminders).
@@ -291,7 +308,7 @@ export async function cancelStreakRiskWarning() {
  * are OS-scheduled local notifications, they still fire even if the app is
  * never reopened before the target date, without needing a server job.
  */
-export async function scheduleWinBackSequence(locationLabel: string | null) {
+export async function scheduleWinBackSequence(locationLabel: string | null, cohort: WinBackCohort = 'lurker') {
   await Promise.all([
     Notifications.cancelScheduledNotificationAsync(ID_WINBACK_7),
     Notifications.cancelScheduledNotificationAsync(ID_WINBACK_14),
@@ -304,9 +321,9 @@ export async function scheduleWinBackSequence(locationLabel: string | null) {
     : i18n.t('notif.placeFallback');
 
   const stages: { id: string; days: number; titleKey: string; bodyKey: string }[] = [
-    { id: ID_WINBACK_7,  days: 7,  titleKey: 'notif.winback7Title',  bodyKey: 'notif.winback7Body' },
-    { id: ID_WINBACK_14, days: 14, titleKey: 'notif.winback14Title', bodyKey: 'notif.winback14Body' },
-    { id: ID_WINBACK_30, days: 30, titleKey: 'notif.winback30Title', bodyKey: 'notif.winback30Body' },
+    { id: ID_WINBACK_7,  days: 7,  titleKey: `notif.winback7_${cohort}Title`,  bodyKey: `notif.winback7_${cohort}Body` },
+    { id: ID_WINBACK_14, days: 14, titleKey: `notif.winback14_${cohort}Title`, bodyKey: `notif.winback14_${cohort}Body` },
+    { id: ID_WINBACK_30, days: 30, titleKey: `notif.winback30_${cohort}Title`, bodyKey: `notif.winback30_${cohort}Body` },
   ];
 
   for (const stage of stages) {

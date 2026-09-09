@@ -16,6 +16,7 @@ import {
   scheduleDailyNudge,
   scheduleStreakRiskWarning,
   scheduleWinBackSequence,
+  resolveWinBackCohort,
   cancelNearbyNotification,
   getUserLocationLabel,
   getSeedDistrictLabel,
@@ -54,7 +55,7 @@ export function useNotifications({ profileId, userLat, userLng }: Options) {
       ]);
       await scheduleDailyNudge(label, stats?.streak ?? 0);
       await scheduleStreakRiskWarning(stats?.streak ?? 0, todayCount > 0);
-      await scheduleWinBackSequence(label);
+      await scheduleWinBackSequence(label, resolveWinBackCohort(stats?.questions ?? 0, stats?.answers ?? 0));
 
       // District+city label for seed_pool matching (see notifications.ts
       // doc comment) — best-effort, never blocks the rest of this effect.
