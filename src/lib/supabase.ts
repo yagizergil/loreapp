@@ -312,6 +312,99 @@ export async function setProfilePremium(profileId: string, isPremium: boolean): 
   if (error) throw error;
 }
 
+/** A reward-granted premium window from referrals, separate from is_premium
+ *  (see referrals.sql) — PremiumContext OR-combines this with RevenueCat. */
+export async function fetchReferralPremiumUntil(profileId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('referral_premium_until')
+    .eq('id', profileId)
+    .maybeSingle();
+  if (error) return null;
+  return data?.referral_premium_until ?? null;
+}
+
+export interface ReferralProgress {
+  referralCode: string;
+  invitedCount: number;
+  premiumUntil: string | null;
+  nextRewardAt: number;
+}
+
+/** Lazily generates (and returns) this profile's referral code. */
+export async function ensureReferralCode(profileId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('ensure_referral_code', { p_profile_id: profileId });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function fetchReferralProgress(profileId: string): Promise<ReferralProgress | null> {
+  const { data, error } = await supabase.rpc('referral_progress', { p_profile_id: profileId });
+  if (error || !data?.length) return null;
+  const row = data[0] as { referral_code: string; invited_count: number; premium_until: string | null; next_reward_at: number };
+  return {
+    referralCode: row.referral_code,
+    invitedCount: row.invited_count,
+    premiumUntil: row.premium_until,
+    nextRewardAt: row.next_reward_at,
+  };
+}
+
+/** Best-effort — called once right after a new profile is created with a
+ *  code the user entered. Returns false (never throws) on any invalid/self/
+ *  already-redeemed code so it never blocks onboarding completion. */
+export async function redeemReferralCode(code: string, newProfileId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('redeem_referral_code', { p_code: code, p_new_profile_id: newProfileId });
+    if (error) return false;
+    return !!data;
+  } catch {
+    return false;
+  }
+}
+
+/** Free teaser count (excludes the author's own views). */
+export async function fetchQuestionViewCount(questionId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('question_view_count', { p_question_id: questionId });
+  if (error) return 0;
+  return (data as number) ?? 0;
+}
+
+export interface QuestionViewer {
+  viewerId: string;
+  nickname: string;
+  avatar: string;
+  avatarUrl: string | null;
+  viewedAt: string;
+}
+
+/** Premium-gated in the UI layer — call only when isPremium is true. */
+export async function fetchQuestionViewers(questionId: string, limit = 30): Promise<QuestionViewer[]> {
+  const { data, error } = await supabase.rpc('question_viewers', { p_question_id: questionId, p_limit: limit });
+  if (error) return [];
+  return ((data as any[]) ?? []).map((r) => ({
+    viewerId: r.viewer_id, nickname: r.nickname, avatar: r.avatar, avatarUrl: r.avatar_url, viewedAt: r.viewed_at,
+  }));
+}
+
+/** Fire-and-forget: logs that `viewerId` opened `questionId`. Never throws —
+ *  a failed view log must not break the question-detail UI. */
+export function logQuestionView(questionId: string, viewerId: string): void {
+  supabase.rpc('log_question_view', { p_question_id: questionId, p_viewer_id: viewerId }).then(() => {}, () => {});
+}
+
+/** "N people active nearby" for the Map density badge — always >= 1
+ *  (see nearby_active_user_count.sql for why the floor is honest, not fake). */
+export async function fetchNearbyActiveUserCount(
+  lat: number, lng: number, radiusM = 3000, activeMinutes = 30,
+): Promise<number> {
+  const { data, error } = await supabase.rpc('nearby_active_user_count', {
+    lat, lng, radius_m: radiusM, active_minutes: activeMinutes,
+  });
+  if (error) return 1;
+  return (data as number) ?? 1;
+}
+
 export async function fetchProfiles(ids: string[]): Promise<Profile[]> {
   if (!ids.length) return [];
   const { data, error } = await supabase

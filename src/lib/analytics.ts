@@ -33,7 +33,12 @@ export type AnalyticsEvent =
   | 'review_prompt_shown'
   | 'share_result'
   | 'leaderboard_viewed'
-  | 'leaderboard_unlock_tapped';
+  | 'leaderboard_unlock_tapped'
+  | 'invite_sheet_viewed'
+  | 'invite_share_tapped'
+  | 'referral_redeemed'
+  | 'question_viewers_unlock_tapped'
+  | 'question_viewers_viewed';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;
 

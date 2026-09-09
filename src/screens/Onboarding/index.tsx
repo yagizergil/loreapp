@@ -17,8 +17,9 @@ import { CURRENT_EULA_VERSION } from '../../lib/eula';
 import {
   createProfile, signUpWithEmail, signInWithEmail, signInWithAppleToken,
   uploadAvatar, updateProfile, fetchProfileByAuthUserId, getAuthUser,
-  linkAuthToProfile,
+  linkAuthToProfile, redeemReferralCode,
 } from '../../lib/supabase';
+import { track } from '../../lib/analytics';
 import { genderColor } from '../../lib/genderColors';
 import { AVATARS } from '../../lib/avatar';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
@@ -211,6 +212,7 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
   const [gender, setGender]       = useState<Gender>('other');
   const [avatarKey, setAvatarKey] = useState('fox');
   const [photoUri, setPhotoUri]   = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState('');
 
   const [loading, setLoading]     = useState(false);
 
@@ -330,6 +332,9 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
     setLoading(true);
     try {
       const p = await createProfile(nickname.trim(), avatarKey, gender, appleUserId);
+      if (referralCode.trim()) {
+        redeemReferralCode(referralCode.trim(), p.id).then((ok) => { if (ok) track('referral_redeemed'); });
+      }
 
       let avatarUrl: string | null = null;
       if (photoUri) {
@@ -358,6 +363,9 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
     try {
       await Location.requestForegroundPermissionsAsync();
       const p = await createProfile(nickname.trim(), avatarKey, gender);
+      if (referralCode.trim()) {
+        redeemReferralCode(referralCode.trim(), p.id).then((ok) => { if (ok) track('referral_redeemed'); });
+      }
       const local: LocalProfile = {
         id: p.id, nickname: p.nickname, avatar: p.avatar,
         gender, avatarUrl: null, isAnonymous: true, eulaVersion: CURRENT_EULA_VERSION,
@@ -392,6 +400,9 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
       }
 
       const p = await createProfile(nickname.trim(), avatarKey, gender, authUserId);
+      if (referralCode.trim()) {
+        redeemReferralCode(referralCode.trim(), p.id).then((ok) => { if (ok) track('referral_redeemed'); });
+      }
 
       let avatarUrl: string | null = null;
       if (photoUri) {
@@ -922,6 +933,21 @@ export default function OnboardingScreen({ onComplete, upgradeProfile, onCancel 
 
         <FieldLabel>{t('onboarding.avatarLabel')}</FieldLabel>
         <AvatarGrid selected={avatarKey} onChange={setAvatarKey} />
+
+        <View style={{ height: spacing.base }} />
+
+        <FieldLabel>{t('onboarding.referralLabel')}</FieldLabel>
+        <TextInput
+          style={s.input}
+          value={referralCode}
+          onChangeText={(v) => setReferralCode(v.toUpperCase())}
+          placeholder={i18n.t('onboarding.referralPlaceholder')}
+          placeholderTextColor={palette.ink40}
+          maxLength={6}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          returnKeyType="done"
+        />
 
         <View style={{ height: spacing.xl }} />
 

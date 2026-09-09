@@ -22,7 +22,7 @@ import {
   addCustomerInfoListener, purchasePackage, restorePurchases,
   isPurchasesConfigured,
 } from './purchases';
-import { fetchIsPremium, setProfilePremium } from './supabase';
+import { fetchIsPremium, setProfilePremium, fetchReferralPremiumUntil } from './supabase';
 
 interface PremiumContextValue {
   isPremium: boolean;
@@ -45,6 +45,9 @@ export function PremiumProvider({
   const [isPremium, setIsPremium] = useState(false);
   const [ready, setReady] = useState(false);
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
+  // Reward window from referrals (see referrals.sql) — additive to the
+  // RevenueCat/mirror state above, never overwritten by it.
+  const [referralPremiumUntil, setReferralPremiumUntil] = useState<number | null>(null);
 
   // Avoid redundant Supabase writes — only mirror when the value flips.
   const lastMirrored = useRef<boolean | null>(null);
@@ -63,6 +66,11 @@ export function PremiumProvider({
     // 1) Optimistic seed from persisted DB flag (no UI flash for returning users).
     fetchIsPremium(profileId)
       .then((db) => { if (alive && db) setIsPremium(true); })
+      .catch(() => {});
+
+    // 1b) Referral reward window, independent of RevenueCat/mirror state.
+    fetchReferralPremiumUntil(profileId)
+      .then((iso) => { if (alive && iso) setReferralPremiumUntil(new Date(iso).getTime()); })
       .catch(() => {});
 
     // 2) RevenueCat is authoritative.
@@ -124,9 +132,16 @@ export function PremiumProvider({
     };
   }, [mirror]);
 
+  // Referral-granted premium is a time window, not a static flag, so it's
+  // re-evaluated against Date.now() on every render rather than cached in
+  // state as a boolean (which would go stale once the window expires while
+  // the app stays open).
+  const hasReferralPremium = !!referralPremiumUntil && referralPremiumUntil > Date.now();
+  const effectiveIsPremium = isPremium || hasReferralPremium;
+
   const value = useMemo<PremiumContextValue>(() => ({
-    isPremium, ready, offering, refreshOffering, purchase, restore,
-  }), [isPremium, ready, offering, refreshOffering, purchase, restore]);
+    isPremium: effectiveIsPremium, ready, offering, refreshOffering, purchase, restore,
+  }), [effectiveIsPremium, ready, offering, refreshOffering, purchase, restore]);
 
   return <PremiumContext.Provider value={value}>{children}</PremiumContext.Provider>;
 }

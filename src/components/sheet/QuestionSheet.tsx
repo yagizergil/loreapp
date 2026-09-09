@@ -17,6 +17,7 @@ import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/toke
 import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
 import { track } from '../../lib/analytics';
 import { maybeRequestReviewAfterAnswer } from '../../lib/reviewPrompt';
+import QuestionViewersRow from '../QuestionViewersRow';
 import { firstActionEvent } from '../../lib/engagementEvents';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
@@ -267,6 +268,9 @@ export default function QuestionSheet({
 
             {/* Question */}
             <Text style={styles.questionBody}>{question.body}</Text>
+            {question.author_id === profileId && (
+              <QuestionViewersRow questionId={question.id} isPremium={isPremium} />
+            )}
 
             {/* Stats */}
             <View style={styles.statsRow}>

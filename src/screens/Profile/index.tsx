@@ -17,9 +17,10 @@ import { getKarmaTier } from '../../lib/karma';
 import {
   IconMessages, IconSignOut, IconTrash, IconTimeline, IconTrophy, IconBell,
   IconGlobe, IconLock, IconDocument, IconBlock, IconMapPin, IconCard,
-  IconStar, IconBug, IconInfo,
+  IconStar, IconBug, IconInfo, IconGift,
 } from '../../components/ui/Icons';
 import { SealMark, TYPE_SHADE } from '../../components/map/SealMark';
+import InviteSheet from '../../components/sheet/InviteSheet';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import Constants from 'expo-constants';
@@ -161,6 +162,7 @@ export default function ProfileScreen() {
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [showBlocked, setShowBlocked] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const [blocked, setBlocked] = useState<Profile[]>([]);
   const [loadingBlocked, setLoadingBlocked] = useState(false);
 
@@ -375,6 +377,12 @@ export default function ProfileScreen() {
             label={t('leaderboard.title')}
             onPress={() => setShowLeaderboard(true)}
           />
+          <Divider />
+          <SettingRow
+            icon={<IconGift color={ICON_COLOR} size={ICON_SIZE} strokeWidth={ICON_STROKE} />}
+            label={t('invite.rowLabel')}
+            onPress={() => setShowInvite(true)}
+          />
         </Section>
 
         {showLeaderboard && (
@@ -382,6 +390,13 @@ export default function ProfileScreen() {
             profileId={profile.id}
             isPremium={isPremium}
             onClose={() => setShowLeaderboard(false)}
+          />
+        )}
+
+        {showInvite && (
+          <InviteSheet
+            profileId={profile.id}
+            onClose={() => setShowInvite(false)}
           />
         )}
 

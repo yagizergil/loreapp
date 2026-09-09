@@ -81,6 +81,20 @@ const en = {
     yourRank:     "You're #{{rank}}",
   },
 
+  // ─── Invite / referral ──────────────────────────────────────────────────────
+  invite: {
+    rowLabel:      'Invite Friends',
+    title:         'Invite Friends',
+    subtitle:      'For every {{count}} friends who join with your code, get {{days}} days of Lore Pro — free.',
+    activeReward:  'Pro active from invites',
+    progressRemaining: '{{remaining}} more to your next reward',
+    progressComplete:  'Reward unlocked — keep inviting for more!',
+    yourCode:      'Your invite code',
+    shareCta:      'Share your code',
+    totalInvited:  '{{n}} friends invited so far',
+    shareMessage:  'Join me on Lore — see and answer anonymous questions near you! Use my invite code {{code}} when you sign up: {{url}}',
+  },
+
   // ─── Map screen ───────────────────────────────────────────────────────────────
   map: {
     filterAll:    'All',
@@ -97,6 +111,7 @@ const en = {
     searchPlaceholder: 'Search nearby questions...',
     caughtUpTitle: "You're all caught up",
     caughtUpBody: "You've answered everyone reachable nearby. We'll notify you the moment someone new posts.",
+    activeNearby:  '{{n}} active nearby',
     noMatchTitle: 'No questions match',
     noMatchBody:  'Try a different filter or search term.',
     clearFilters: 'Clear filters',
@@ -157,6 +172,11 @@ const en = {
     voteUsed:       'Vote cast',
     answerSaved:    'Answer saved',
     anonymous:      'anonymous',
+    viewersCount:      '{{n}} people viewed this',
+    viewersCountZero:  'No views yet',
+    viewersUnlockCta:  'See who viewed this with Pro',
+    viewersTitle:      'Who Viewed This',
+    viewersEmpty:      'No one else has viewed this yet.',
   },
 
   // ─── Chat screen ─────────────────────────────────────────────────────────────
@@ -280,6 +300,8 @@ const en = {
     usernameLabel:  'USERNAME',
     genderLabel:    'GENDER',
     avatarLabel:    'AVATAR',
+    referralLabel:      'INVITE CODE (OPTIONAL)',
+    referralPlaceholder: 'e.g. AB12CD',
     stepLabel:        'Step {{step}}/{{total}}',
     showPass:         'Show',
     hidePass:         'Hide',

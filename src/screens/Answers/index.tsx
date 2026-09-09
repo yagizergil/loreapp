@@ -23,9 +23,10 @@ import Animated, {
 import {
   Question, QuestionType, Answer, Profile,
   fetchAnswers, submitAnswer, fetchProfiles, countTodayAnswers, FREE_DAILY_ANSWER_LIMIT,
-  fetchBlockedIds, toggleAnswerUpvote, fetchUpvotedAnswerIds, deleteOwnAnswer,
+  fetchBlockedIds, toggleAnswerUpvote, fetchUpvotedAnswerIds, deleteOwnAnswer, logQuestionView,
 } from '../../lib/supabase';
 import { paywallEvents } from '../../lib/premiumEvents';
+import QuestionViewersRow from '../../components/QuestionViewersRow';
 import { track } from '../../lib/analytics';
 import { firstActionEvent } from '../../lib/engagementEvents';
 import { usePremium } from '../../lib/PremiumContext';
@@ -496,6 +497,10 @@ export default function AnswersScreen() {
 
   // ── Initial load ─────────────────────────────────────────────────────────
   useEffect(() => {
+    if (question.author_id !== profileId) logQuestionView(question.id, profileId);
+  }, [question.id, question.author_id, profileId]);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -732,6 +737,9 @@ export default function AnswersScreen() {
             </Text>
           </View>
           <Text style={s.heroBody}>{question.body}</Text>
+          {question.author_id === profileId && (
+            <QuestionViewersRow questionId={question.id} isPremium={isPremium} />
+          )}
         </View>
       </View>
 

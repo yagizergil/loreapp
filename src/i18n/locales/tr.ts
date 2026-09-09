@@ -81,6 +81,20 @@ const tr = {
     yourRank:     'Sıran: #{{rank}}',
   },
 
+  // ─── Davet / referans ───────────────────────────────────────────────────────
+  invite: {
+    rowLabel:      'Arkadaşlarını Davet Et',
+    title:         'Arkadaşlarını Davet Et',
+    subtitle:      'Kodunla katılan her {{count}} arkadaşın için {{days}} gün ücretsiz Lore Pro kazan.',
+    activeReward:  'Davetten Pro aktif',
+    progressRemaining: 'Bir sonraki ödüle {{remaining}} kişi kaldı',
+    progressComplete:  'Ödül açıldı — daha fazlası için davet etmeye devam et!',
+    yourCode:      'Davet kodun',
+    shareCta:      'Kodunu paylaş',
+    totalInvited:  'Şimdiye kadar {{n}} arkadaş davet ettin',
+    shareMessage:  'Lore\'a katıl — çevrendeki anonim soruları gör ve cevapla! Kayıt olurken {{code}} davet kodumu kullan: {{url}}',
+  },
+
   // ─── Map screen ───────────────────────────────────────────────────────────────
   map: {
     filterAll:    'Tümü',
@@ -97,6 +111,7 @@ const tr = {
     searchPlaceholder: 'Yakındaki sorularda ara...',
     caughtUpTitle: 'Herkese cevap verdin',
     caughtUpBody: 'Yakınında ulaşabildiğin herkese cevap verdin. Biri yeni bir soru sorduğunda sana haber vereceğiz.',
+    activeNearby:  'Yakında {{n}} kişi aktif',
     noMatchTitle: 'Eşleşen soru yok',
     noMatchBody:  'Farklı bir filtre veya arama terimi dene.',
     clearFilters: 'Filtreleri temizle',
@@ -157,6 +172,11 @@ const tr = {
     voteUsed:       'Oyun kullanıldı',
     answerSaved:    'Cevabın kaydedildi',
     anonymous:      'anonim',
+    viewersCount:      '{{n}} kişi görüntüledi',
+    viewersCountZero:  'Henüz görüntüleyen yok',
+    viewersUnlockCta:  'Pro ile kimin görüntülediğini gör',
+    viewersTitle:      'Kim Görüntüledi',
+    viewersEmpty:      'Henüz başka kimse görüntülemedi.',
   },
 
   // ─── Chat screen ─────────────────────────────────────────────────────────────
@@ -280,6 +300,8 @@ const tr = {
     usernameLabel:  'KULLANICI ADI',
     genderLabel:    'CİNSİYET',
     avatarLabel:    'AVATAR',
+    referralLabel:      'DAVET KODU (OPSİYONEL)',
+    referralPlaceholder: 'örn. AB12CD',
     stepLabel:        'Adım {{step}}/{{total}}',
     showPass:         'Göster',
     hidePass:         'Gizle',

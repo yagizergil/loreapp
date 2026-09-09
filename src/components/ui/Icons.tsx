@@ -350,6 +350,17 @@ export function IconStar({ color = '#fff', size = 24, strokeWidth = 1.8 }: IconP
   );
 }
 
+export function IconGift({ color = '#fff', size = 24, strokeWidth = 1.8 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M3 9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" />
+      <Path d="M5 12h14v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8z" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" />
+      <Path d="M12 8v13" stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M12 8c-1.5 0-4-1-4-3a2 2 0 0 1 4 0 2 2 0 0 1 4 0c0 2-2.5 3-4 3z" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 export function IconBug({ color = '#fff', size = 24, strokeWidth = 1.8 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

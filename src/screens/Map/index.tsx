@@ -16,7 +16,7 @@ import MapView, { MapStyleElement, Region, Circle } from 'react-native-maps';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { Question, QuestionType, AuthorReputation, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds, fetchRegionQuestionCount, fetchAuthorKarma } from '../../lib/supabase';
+import { Question, QuestionType, AuthorReputation, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds, fetchRegionQuestionCount, fetchAuthorKarma, logQuestionView, fetchNearbyActiveUserCount } from '../../lib/supabase';
 import { track } from '../../lib/analytics';
 import { useProfile } from '../../lib/ProfileContext';
 import { usePremium } from '../../lib/PremiumContext';
@@ -107,6 +107,7 @@ export default function MapScreen() {
   const INITIAL_VISIBLE_PINS = 18;
   const VISIBLE_PINS_INCREMENT = 1;
   const [visibleCap, setVisibleCap] = useState(INITIAL_VISIBLE_PINS);
+  const [activeNearby, setActiveNearby] = useState<number | null>(null);
 
   const isLocked = useCallback((q: Question) => {
     if (isPremium || !userLocation) return false;
@@ -233,6 +234,21 @@ export default function MapScreen() {
       .catch(() => {});
   }, [profile.id]);
 
+  // "N active nearby" density badge — refreshed periodically, never shown as 0
+  // (see nearby_active_user_count.sql: the floor of 1 is the viewer themself).
+  useEffect(() => {
+    if (!userLocation) return;
+    let alive = true;
+    const load = () => {
+      fetchNearbyActiveUserCount(userLocation.lat, userLocation.lng)
+        .then((n) => { if (alive) setActiveNearby(n); })
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 60_000);
+    return () => { alive = false; clearInterval(interval); };
+  }, [userLocation]);
+
   // Load blocked user IDs so their questions never appear on the map.
   useFocusEffect(
     useCallback(() => {
@@ -354,8 +370,9 @@ export default function MapScreen() {
       return;
     }
     setViewedIds((prev) => new Set(prev).add(q.id));
+    if (q.author_id !== profile.id) logQuestionView(q.id, profile.id);
     setSelectedQuestion(q);
-  }, [isLocked, navigation, questions, userLocation]);
+  }, [isLocked, navigation, questions, userLocation, profile.id]);
 
   const [mapRefreshKey, setMapRefreshKey] = useState(0);
 
@@ -490,7 +507,15 @@ export default function MapScreen() {
       {/* Top bar with BlurView */}
       <View style={styles.topBarWrapper}>
         <BlurView intensity={60} tint="dark" style={styles.topBar}>
-          <Text style={styles.appName}>lore</Text>
+          <View style={styles.appNameGroup}>
+            <Text style={styles.appName}>lore</Text>
+            {activeNearby !== null && (
+              <View style={styles.activeBadge}>
+                <View style={styles.activeDot} />
+                <Text style={styles.activeBadgeText}>{t('map.activeNearby', { n: activeNearby })}</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.topBarActions}>
             <TouchableOpacity
               style={styles.leaderboardButton}
@@ -746,6 +771,31 @@ const styles = StyleSheet.create({
     fontFamily: 'Fraunces_500Medium_Italic',
     fontSize: fontSize.xl,
     color: palette.accent,
+  },
+  appNameGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  activeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: palette.ink70 + 'AA',
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: palette.success,
+  },
+  activeBadgeText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.xs,
+    color: palette.ink10,
   },
   topBarActions: {
     flexDirection: 'row',
