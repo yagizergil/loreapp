@@ -204,6 +204,13 @@ const tr = {
     footer:       'Yakınındaki anonim soruları cevapla — Lore',
   },
 
+  // ─── Yakında aktif mini-liste ───────────────────────────────────────────────
+  activeNearby: {
+    title:    'Yakınında Aktif',
+    empty:    'Şu an yakınında başka kimse yok.',
+    sayHiCta: '👋 Yakındaki birine merhaba de',
+  },
+
   // ─── Merhaba De ─────────────────────────────────────────────────────────────
   sayHi: {
     title:            'Merhaba De',

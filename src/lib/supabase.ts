@@ -524,6 +524,30 @@ export async function fetchNearbyActiveUserCount(
   return (data as number) ?? 1;
 }
 
+export interface NearbyActiveUser {
+  candidateId: string;
+  nickname: string;
+  avatar: string;
+  avatarUrl: string | null;
+  gender: 'male' | 'female' | 'other' | null;
+}
+
+/** Free "who's active nearby right now" mini-list — presence/liveliness only,
+ *  no messaging (see nearby_active_users.sql). Say Hi remains the separate,
+ *  premium-gated path for actually starting a conversation. */
+export async function fetchNearbyActiveUsers(
+  viewerId: string, lat: number, lng: number, radiusM = 3000, activeMinutes = 30, limit = 6,
+): Promise<NearbyActiveUser[]> {
+  const { data, error } = await supabase.rpc('nearby_active_users', {
+    viewer_id: viewerId, lat, lng, radius_m: radiusM, active_minutes: activeMinutes, p_limit: limit,
+  });
+  if (error || !data) return [];
+  return (data as any[]).map((row) => ({
+    candidateId: row.candidate_id, nickname: row.nickname, avatar: row.avatar,
+    avatarUrl: row.avatar_url, gender: (row.gender as NearbyActiveUser['gender']) ?? null,
+  }));
+}
+
 export async function fetchProfiles(ids: string[]): Promise<Profile[]> {
   if (!ids.length) return [];
   const { data, error } = await supabase

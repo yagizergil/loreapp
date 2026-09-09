@@ -204,6 +204,13 @@ const en = {
     footer:       'Answer anonymous questions near you — Lore',
   },
 
+  // ─── Active nearby mini-list ────────────────────────────────────────────────
+  activeNearby: {
+    title:    "Active nearby",
+    empty:    'No one else nearby right now.',
+    sayHiCta: '👋 Say hi to someone nearby',
+  },
+
   // ─── Say Hi ─────────────────────────────────────────────────────────────────
   sayHi: {
     title:            'Say Hi',

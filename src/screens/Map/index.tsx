@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { Question, QuestionType, AuthorReputation, fetchQuestionsAround, fetchUserAnsweredQuestionIds, fetchBlockedIds, fetchRegionQuestionCount, fetchAuthorKarma, logQuestionView, fetchNearbyActiveUserCount, SayHiCandidate } from '../../lib/supabase';
 import SayHiSheet from '../../components/sheet/SayHiSheet';
+import ActiveNearbySheet from '../../components/sheet/ActiveNearbySheet';
 import { track } from '../../lib/analytics';
 import { useProfile } from '../../lib/ProfileContext';
 import { usePremium } from '../../lib/PremiumContext';
@@ -110,6 +111,7 @@ export default function MapScreen() {
   const [visibleCap, setVisibleCap] = useState(INITIAL_VISIBLE_PINS);
   const [activeNearby, setActiveNearby] = useState<number | null>(null);
   const [showSayHi, setShowSayHi] = useState(false);
+  const [showActiveNearby, setShowActiveNearby] = useState(false);
 
   const isLocked = useCallback((q: Question) => {
     if (isPremium || !userLocation) return false;
@@ -520,7 +522,7 @@ export default function MapScreen() {
               <TouchableOpacity
                 style={styles.activeBadge}
                 activeOpacity={0.75}
-                onPress={() => setShowSayHi(true)}
+                onPress={() => setShowActiveNearby(true)}
               >
                 <View style={styles.activeDot} />
                 <Text style={styles.activeBadgeText}>{t('map.activeNearby', { n: activeNearby })}</Text>
@@ -574,6 +576,19 @@ export default function MapScreen() {
           profileId={profile.id}
           isPremium={isPremium}
           onClose={() => setShowLeaderboard(false)}
+        />
+      )}
+
+      {showActiveNearby && (
+        <ActiveNearbySheet
+          profileId={profile.id}
+          userLocation={userLocation}
+          onClose={() => setShowActiveNearby(false)}
+          onSayHi={() => {
+            track('active_nearby_say_hi_tapped');
+            setShowActiveNearby(false);
+            setShowSayHi(true);
+          }}
         />
       )}
 

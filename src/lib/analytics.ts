@@ -46,7 +46,9 @@ export type AnalyticsEvent =
   | 'say_hi_sheet_viewed'
   | 'say_hi_sent'
   | 'share_card_opened'
-  | 'share_card_shared';
+  | 'share_card_shared'
+  | 'active_nearby_list_viewed'
+  | 'active_nearby_say_hi_tapped';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;
 
