@@ -44,7 +44,9 @@ export type AnalyticsEvent =
   | 'ask_template_used'
   | 'say_hi_unlock_tapped'
   | 'say_hi_sheet_viewed'
-  | 'say_hi_sent';
+  | 'say_hi_sent'
+  | 'share_card_opened'
+  | 'share_card_shared';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;
 

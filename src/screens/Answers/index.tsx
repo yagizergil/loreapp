@@ -38,6 +38,8 @@ import { moderationMenu, reportAnswerFlow } from '../../lib/moderation';
 import { containsObjectionableContent } from '../../lib/contentFilter';
 import { getKarmaTier } from '../../lib/karma';
 import { cancelStreakRiskWarning } from '../../lib/notifications';
+import { IconShareOutline } from '../../components/ui/Icons';
+import ShareCard from '../../components/ShareCard';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import AvatarView from '../../components/ui/Avatar';
 import { SkeletonList } from '../../components/ui/SkeletonRow';
@@ -506,6 +508,7 @@ export default function AnswersScreen() {
   const [answers, setAnswers]       = useState<Answer[]>([]);
   const [authorsMap, setAuthorsMap] = useState<Record<string, Profile>>({});
   const [authorKarmaMap, setAuthorKarmaMap] = useState<Map<string, AuthorReputation>>(new Map());
+  const [showShareCard, setShowShareCard] = useState(false);
   const [loading, setLoading]       = useState(true);
   const [text, setText]             = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -842,8 +845,22 @@ export default function AnswersScreen() {
           <View style={s.chevron} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{isVotable ? t('answers.votingTitle') : t('answers.title')}</Text>
-        <View style={s.backBtn} />
+        <TouchableOpacity
+          style={s.backBtn}
+          activeOpacity={0.7}
+          onPress={() => { track('share_card_opened'); setShowShareCard(true); }}
+        >
+          <IconShareOutline color={palette.ink20} size={20} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
+
+      {showShareCard && (
+        <ShareCard
+          questionBody={question.body}
+          answerBody={[...answers].sort((a, b) => b.upvotes - a.upvotes)[0]?.body}
+          onClose={() => setShowShareCard(false)}
+        />
+      )}
 
       {/* Content */}
       {loading ? (

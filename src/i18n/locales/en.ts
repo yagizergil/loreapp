@@ -196,6 +196,14 @@ const en = {
     toast: '🎉 Lucky answer! +{{amount}} bonus karma',
   },
 
+  // ─── Share card ─────────────────────────────────────────────────────────────
+  shareCard: {
+    cta:          'Share',
+    shareCta:     'Share to Story',
+    shareMessage: 'Seen on Lore 👀 {{url}}',
+    footer:       'Answer anonymous questions near you — Lore',
+  },
+
   // ─── Say Hi ─────────────────────────────────────────────────────────────────
   sayHi: {
     title:            'Say Hi',

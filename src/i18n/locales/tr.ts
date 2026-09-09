@@ -196,6 +196,14 @@ const tr = {
     toast: '🎉 Şanslı cevap! +{{amount}} bonus karma',
   },
 
+  // ─── Paylaşım kartı ─────────────────────────────────────────────────────────
+  shareCard: {
+    cta:          'Paylaş',
+    shareCta:     'Story\'ye Paylaş',
+    shareMessage: 'Lore\'da gördüm 👀 {{url}}',
+    footer:       'Yakınındaki anonim soruları cevapla — Lore',
+  },
+
   // ─── Merhaba De ─────────────────────────────────────────────────────────────
   sayHi: {
     title:            'Merhaba De',
