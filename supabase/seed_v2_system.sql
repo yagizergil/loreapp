@@ -124,6 +124,11 @@ drop function if exists run_seed_drop(int, int, float, float);
 drop function if exists run_seed_drop(int, int, float, float, boolean, int);
 drop function if exists run_seed_drop(int, float);
 
+-- v2: prefers the LLM-generated, district-specific seed_pool (see
+-- seed_pool.sql / seed_generator edge function) over the flat generic
+-- template pool below — falls back to the generic pool only for districts
+-- that don't have pool coverage yet (brand new area, or the daily
+-- generator hasn't run since users showed up there).
 create or replace function run_seed_drop(
   est_throttle_hours int   default 4,    -- yerleşik kullanıcı: 1 seed / 4 saat
   jitter_m           float default 700
@@ -132,15 +137,19 @@ language plpgsql
 security definer
 as $$
 declare
-  u        record;
-  v_tpl    seed_templates%rowtype;
-  v_author uuid;
-  v_geom   geography;
-  v_qid    uuid;
-  v_count  int := 0;
+  u          record;
+  v_pool     seed_pool%rowtype;
+  v_tpl      seed_templates%rowtype;
+  v_author   uuid;
+  v_geom     geography;
+  v_qid      uuid;
+  v_count    int := 0;
+  v_body     text;
+  v_type     text;
+  v_options  jsonb;
 begin
   for u in
-    select p.id, p.last_geom
+    select p.id, p.last_geom, p.last_location_label
     from profiles p
     where p.is_bot = false
       and p.last_geom is not null
@@ -149,26 +158,47 @@ begin
       and (p.last_seed_drop_at is null                                          -- yeni kullanıcı
            or p.last_seed_drop_at < now() - make_interval(hours => est_throttle_hours))  -- 4 saat geçti
   loop
-    -- Kullanıcıya daha önce atılmamış generic şablon
-    select t.* into v_tpl
-    from seed_templates t
-    where t.active and t.scope = 'generic'
-      and not exists (
-        select 1 from seed_drops d where d.user_id = u.id and d.template_id = t.id
-      )
-    order by random()
-    limit 1;
+    v_pool := null;
+    v_tpl := null;
 
-    -- Hepsi kullanıldıysa: havuzu sıfırdan kullanmaya izin ver
-    if v_tpl.id is null then
-      select t.* into v_tpl
-      from seed_templates t
-      where t.active and t.scope = 'generic'
-      order by random()
+    -- 1) Önce district-specific pool (least-recently-used first)
+    if u.last_location_label is not null then
+      select p.* into v_pool
+      from seed_pool p
+      where p.district_label = u.last_location_label
+      order by p.used_count asc, p.last_used_at asc nulls first, random()
       limit 1;
     end if;
 
-    continue when v_tpl.id is null;  -- havuz boş
+    if v_pool.id is not null then
+      v_body := v_pool.body;
+      v_type := v_pool.type;
+      v_options := v_pool.options;
+      update seed_pool set used_count = used_count + 1, last_used_at = now() where id = v_pool.id;
+    else
+      -- 2) Fallback: eski generic şablon havuzu
+      select t.* into v_tpl
+      from seed_templates t
+      where t.active and t.scope = 'generic'
+        and not exists (
+          select 1 from seed_drops d where d.user_id = u.id and d.template_id = t.id
+        )
+      order by random()
+      limit 1;
+
+      if v_tpl.id is null then
+        select t.* into v_tpl
+        from seed_templates t
+        where t.active and t.scope = 'generic'
+        order by random()
+        limit 1;
+      end if;
+
+      continue when v_tpl.id is null;  -- havuz boş
+      v_body := v_tpl.body;
+      v_type := v_tpl.type;
+      v_options := v_tpl.options;
+    end if;
 
     -- Rastgele bot yazar
     select id into v_author from profiles where is_bot order by random() limit 1;
@@ -178,11 +208,13 @@ begin
     v_geom := ST_Project(u.last_geom, 150 + random() * (jitter_m - 150), random() * 2 * pi());
 
     insert into questions (author_id, body, type, options, geom, answer_count, created_at)
-    values (v_author, v_tpl.body, v_tpl.type, v_tpl.options, v_geom, 0, now())
+    values (v_author, v_body, v_type, v_options, v_geom, 0, now())
     returning id into v_qid;
 
-    insert into seed_drops (user_id, template_id, question_id)
-    values (u.id, v_tpl.id, v_qid);
+    if v_tpl.id is not null then
+      insert into seed_drops (user_id, template_id, question_id)
+      values (u.id, v_tpl.id, v_qid);
+    end if;
 
     update profiles set last_seed_drop_at = now() where id = u.id;
 

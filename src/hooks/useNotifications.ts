@@ -18,9 +18,10 @@ import {
   scheduleWinBackSequence,
   cancelNearbyNotification,
   getUserLocationLabel,
+  getSeedDistrictLabel,
 } from '../lib/notifications';
 import { notificationEvents, NotificationScreen } from '../lib/notificationEvents';
-import { saveUserLocation, fetchUserStats, countTodayAnswers } from '../lib/supabase';
+import { saveUserLocation, saveUserLocationLabel, fetchUserStats, countTodayAnswers } from '../lib/supabase';
 
 interface Options {
   profileId:    string | null;
@@ -54,6 +55,12 @@ export function useNotifications({ profileId, userLat, userLng }: Options) {
       await scheduleDailyNudge(label, stats?.streak ?? 0);
       await scheduleStreakRiskWarning(stats?.streak ?? 0, todayCount > 0);
       await scheduleWinBackSequence(label);
+
+      // District+city label for seed_pool matching (see notifications.ts
+      // doc comment) — best-effort, never blocks the rest of this effect.
+      getSeedDistrictLabel().then((districtLabel) => {
+        if (districtLabel) saveUserLocationLabel(profileId, districtLabel).catch(() => {});
+      }).catch(() => {});
     })();
   // Only re-run when profile first available; location label is fetched inside
   // eslint-disable-next-line react-hooks/exhaustive-deps

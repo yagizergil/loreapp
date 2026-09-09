@@ -135,6 +135,37 @@ export async function getUserLocationLabel(): Promise<string | null> {
   }
 }
 
+/**
+ * District+city label used ONLY to match a user to their seed_pool bucket
+ * (see saveUserLocationLabel / seed_generator). Deliberately more specific
+ * than getUserLocationLabel() above (which is bare district, fine for
+ * "{{place}}'de" notification copy) — a bare district name like "Merkez"
+ * collides across many different Turkish cities, which would mix one
+ * city's seed questions into another's map.
+ */
+export async function getSeedDistrictLabel(): Promise<string | null> {
+  try {
+    const { status } = await Location.getForegroundPermissionsAsync();
+    if (status !== 'granted') return null;
+
+    const pos = await Location.getLastKnownPositionAsync({ maxAge: 5 * 60 * 1000, requiredAccuracy: 500 });
+    if (!pos) return null;
+
+    const [geo] = await Location.reverseGeocodeAsync({
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+    });
+    if (!geo) return null;
+
+    const district = geo.district ?? geo.subregion ?? null;
+    const city = geo.city ?? geo.region ?? null;
+    if (district && city) return `${district}, ${city}`;
+    return city ?? district ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Notification content builders ───────────────────────────────────────────
 
 type NotifContent = {

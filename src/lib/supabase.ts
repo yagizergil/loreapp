@@ -168,6 +168,13 @@ export async function saveUserLocation(profileId: string, lat: number, lng: numb
   await supabase.rpc('update_user_location', { p_id: profileId, p_lat: lat, p_lng: lng });
 }
 
+/** Persist the reverse-geocoded district/city label (see
+ *  getUserLocationLabel) so the seed-generator's per-district pool can be
+ *  matched to this user without the DB doing its own reverse geocoding. */
+export async function saveUserLocationLabel(profileId: string, label: string): Promise<void> {
+  await supabase.rpc('update_user_location_label', { p_id: profileId, p_label: label });
+}
+
 /** Fetch a single question (with unpacked lat/lng) by id — used by notification deep links. */
 export async function fetchQuestionById(questionId: string): Promise<Question | null> {
   const { data, error } = await supabase.rpc('question_by_id', { q_id: questionId });
