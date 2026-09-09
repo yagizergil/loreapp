@@ -14,11 +14,12 @@ import * as Notifications from 'expo-notifications';
 import {
   registerForPushNotifications,
   scheduleDailyNudge,
+  scheduleStreakRiskWarning,
   cancelNearbyNotification,
   getUserLocationLabel,
 } from '../lib/notifications';
 import { notificationEvents, NotificationScreen } from '../lib/notificationEvents';
-import { saveUserLocation, fetchUserStats } from '../lib/supabase';
+import { saveUserLocation, fetchUserStats, countTodayAnswers } from '../lib/supabase';
 
 interface Options {
   profileId:    string | null;
@@ -44,11 +45,13 @@ export function useNotifications({ profileId, userLat, userLng }: Options) {
   useEffect(() => {
     if (!profileId) return;
     (async () => {
-      const [label, stats] = await Promise.all([
+      const [label, stats, todayCount] = await Promise.all([
         getUserLocationLabel(),
         fetchUserStats(profileId).catch(() => null),
+        countTodayAnswers(profileId).catch(() => 0),
       ]);
       await scheduleDailyNudge(label, stats?.streak ?? 0);
+      await scheduleStreakRiskWarning(stats?.streak ?? 0, todayCount > 0);
     })();
   // Only re-run when profile first available; location label is fetched inside
   // eslint-disable-next-line react-hooks/exhaustive-deps

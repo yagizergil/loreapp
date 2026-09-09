@@ -427,6 +427,18 @@ const en = {
     voteHint:     'A simple yes / no vote.',
     choiceHint:   'Up to 4 options to pick from.',
     openHint:     'Let people answer freely.',
+    templatesLabel: 'Stuck? Try one of these',
+    templates: {
+      vote1: 'Is pineapple on pizza a crime?',
+      vote2: 'Should phones be banned in movie theaters?',
+      vote3: 'Is it rude to leave a text on read for a day?',
+      choice1: { body: 'Would you rather have...', a: 'Unlimited money', b: 'Unlimited free time' },
+      choice2: { body: 'Perfect weekend:', a: 'Beach', b: 'Mountains' },
+      choice3: { body: 'Which is worse?', a: 'Being too hot', b: 'Being too cold' },
+      open1: "What's a small thing that instantly ruins your mood?",
+      open2: "What's the most underrated spot near here?",
+      open3: "What's something you believed as a kid that turned out to be wrong?",
+    },
   },
 
   // ─── Cluster sheet ────────────────────────────────────────────────────────────
@@ -449,6 +461,8 @@ const en = {
     daily3Body:  'There\'s new activity near {{place}} today.',
     streakTitle: 'Keep your {{streak}}-day streak alive 🔥',
     streakBody:  'Answer one question today to keep it going.',
+    streakRiskTitle: 'Your {{streak}}-day streak ends at midnight ⏳',
+    streakRiskBody:  "You haven't answered today — one quick answer keeps it alive.",
   },
 
   // ─── Question badges (map pins) ────────────────────────────────────────────────

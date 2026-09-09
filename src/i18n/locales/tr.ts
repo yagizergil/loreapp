@@ -427,6 +427,18 @@ const tr = {
     voteHint:     'Basit bir evet / hayır oylaması.',
     choiceHint:   'Seçilebilecek en fazla 4 seçenek.',
     openHint:     'İnsanlar serbestçe yanıt versin.',
+    templatesLabel: 'Ne soracağını bilemedin mi? Birini dene',
+    templates: {
+      vote1: 'Ananaslı pizza suç mu?',
+      vote2: 'Sinemada telefon kullanımı yasaklanmalı mı?',
+      vote3: 'Bir mesajı bir gün "görüldü" bırakmak ayıp mı?',
+      choice1: { body: 'Hangisini tercih ederdin?', a: 'Sınırsız para', b: 'Sınırsız boş zaman' },
+      choice2: { body: 'Mükemmel hafta sonu:', a: 'Deniz', b: 'Dağ' },
+      choice3: { body: 'Hangisi daha kötü?', a: 'Çok sıcak olmak', b: 'Çok soğuk olmak' },
+      open1: 'Anlık ruh halini bozan küçük bir şey nedir?',
+      open2: 'Buralarda hakkı verilmeyen en iyi yer neresi?',
+      open3: 'Çocukken inandığın ama sonradan yanlış çıkan bir şey neydi?',
+    },
   },
 
   // ─── Cluster sheet ────────────────────────────────────────────────────────────
@@ -449,6 +461,8 @@ const tr = {
     daily3Body:  '{{place}} bugün yeni aktivite var.',
     streakTitle: '{{streak}} günlük serini kaybetme 🔥',
     streakBody:  'Serini sürdürmek için bugün bir soru cevapla.',
+    streakRiskTitle: '{{streak}} günlük serin gece yarısı bitiyor ⏳',
+    streakRiskBody:  'Bugün henüz cevap vermedin — tek bir cevap serini korur.',
   },
 
   // ─── Question badges (map pins) ────────────────────────────────────────────────

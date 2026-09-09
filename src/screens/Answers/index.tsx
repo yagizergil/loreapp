@@ -36,6 +36,7 @@ import { supabase } from '../../lib/supabase';
 import { moderationMenu, reportAnswerFlow } from '../../lib/moderation';
 import { containsObjectionableContent } from '../../lib/contentFilter';
 import { getKarmaTier } from '../../lib/karma';
+import { cancelStreakRiskWarning } from '../../lib/notifications';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import AvatarView from '../../components/ui/Avatar';
 import { SkeletonList } from '../../components/ui/SkeletonRow';
@@ -629,6 +630,7 @@ export default function AnswersScreen() {
       setMyChoice(choice);
       setAnswered(true);
       track('answer_submitted', { type: question.type });
+      cancelStreakRiskWarning();
       firstActionEvent.notify();
     } catch (e: any) {
       if (e?.code === '23505') {
@@ -660,6 +662,7 @@ export default function AnswersScreen() {
       setText('');
       setAnswered(true);
       track('answer_submitted', { type: question.type });
+      cancelStreakRiskWarning();
       firstActionEvent.notify();
     } catch (e: any) {
       if (e?.code === '23505') {

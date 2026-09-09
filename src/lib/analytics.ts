@@ -40,7 +40,8 @@ export type AnalyticsEvent =
   | 'question_viewers_unlock_tapped'
   | 'question_viewers_viewed'
   | 'boost_unlock_tapped'
-  | 'question_boosted';
+  | 'question_boosted'
+  | 'ask_template_used';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;
 

@@ -26,8 +26,9 @@ export const CHANNEL = {
 
 // ─── Scheduled notification identifiers ──────────────────────────────────────
 
-const ID_DAILY_NUDGE  = 'lore_daily_nudge';
-const ID_NEARBY_CHECK = 'lore_nearby_check';
+const ID_DAILY_NUDGE   = 'lore_daily_nudge';
+const ID_NEARBY_CHECK  = 'lore_nearby_check';
+const ID_STREAK_RISK   = 'lore_streak_risk';
 
 // ─── Android channel setup ────────────────────────────────────────────────────
 
@@ -197,6 +198,54 @@ export async function scheduleDailyNudge(locationLabel: string | null, streak = 
       minute:  0,
     },
   });
+}
+
+/**
+ * Streak-loss warning (Duolingo's single most-cited retention mechanic —
+ * loss aversion outperforms the gain of the streak itself). Fires ONCE,
+ * later THIS evening, only when there's an actual streak worth protecting
+ * and the user hasn't already answered today — never scheduled as a
+ * recurring DAILY trigger like the nudge above, because "you're about to
+ * lose your streak" would be false and spammy on a day the user already
+ * answered; re-evaluated fresh on every app open instead.
+ */
+export async function scheduleStreakRiskWarning(streak: number, hasAnsweredToday: boolean) {
+  await Notifications.cancelScheduledNotificationAsync(ID_STREAK_RISK).catch(() => {});
+  if (streak < 2 || hasAnsweredToday) return;
+
+  const now = new Date();
+  const fireAt = new Date(now);
+  fireAt.setHours(21, 30, 0, 0);
+  // Already past 21:30 — give a short lead time instead of skipping the
+  // warning entirely (still meaningfully "later tonight" pre-midnight).
+  if (fireAt <= now) fireAt.setTime(now.getTime() + 60 * 60 * 1000);
+  // Never schedule into tomorrow — if that pushes past midnight, the streak
+  // is effectively already at its deadline; nothing useful to warn about.
+  if (fireAt.getDate() !== now.getDate()) return;
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: ID_STREAK_RISK,
+    content: {
+      title: i18n.t('notif.streakRiskTitle', { streak }),
+      body:  i18n.t('notif.streakRiskBody', { streak }),
+      data:  { screen: 'Map' },
+      sound: 'default',
+      ...(Platform.OS === 'android' && { channelId: CHANNEL.ENGAGEMENT }),
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: fireAt,
+    },
+  });
+}
+
+/**
+ * Call right after a successful answer submission — the streak is safe for
+ * today, so the evening warning (scheduled at last app-open, before this
+ * answer happened) would otherwise fire a false "you're about to lose it".
+ */
+export async function cancelStreakRiskWarning() {
+  await Notifications.cancelScheduledNotificationAsync(ID_STREAK_RISK).catch(() => {});
 }
 
 /**

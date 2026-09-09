@@ -7,6 +7,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { QuestionType, postQuestion } from '../../lib/supabase';
+import { getQuestionTemplates } from '../../lib/questionTemplates';
 import { containsObjectionableContent } from '../../lib/contentFilter';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import { CONTENT_MAX_WIDTH } from '../../theme/responsive';
@@ -257,6 +258,32 @@ export default function AskQuestionModal({ profileId, userLocation, onClose, onP
 
       <Text style={m.heading}>{t('ask.step2Title')}</Text>
 
+      {/* Icebreaker templates — lowers the "what do I even ask" barrier.
+          Hidden once the user starts typing their own question. */}
+      {questionBody.length === 0 && (
+        <>
+          <Text style={m.templatesLabel}>{t('ask.templatesLabel')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={m.templatesRow}>
+            {getQuestionTemplates(selectedType).map((tpl, i) => (
+              <TouchableOpacity
+                key={i}
+                style={[m.templateChip, { borderColor: typeColor + '55' }]}
+                activeOpacity={0.75}
+                onPress={() => {
+                  setBody(tpl.body);
+                  if (tpl.options) setChoices(tpl.options);
+                  track('ask_template_used', { type: selectedType });
+                }}
+              >
+                <Text style={[m.templateChipText, { color: typeColor }]} numberOfLines={1}>
+                  {tpl.body}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </>
+      )}
+
       {/* Main input */}
       <View style={[m.inputCard, inputFocused && { borderColor: typeColor }]}>
         <TextInput
@@ -495,6 +522,27 @@ const m = StyleSheet.create({
     fontSize: fontSize.sm,
     color: palette.ink40,
     marginBottom: spacing.lg,
+  },
+  templatesLabel: {
+    fontFamily: fontFamily.body,
+    fontSize: fontSize.xs,
+    color: palette.ink40,
+    marginBottom: spacing.xs,
+  },
+  templatesRow: {
+    marginBottom: spacing.base,
+  },
+  templateChip: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    marginRight: spacing.xs,
+    maxWidth: 220,
+  },
+  templateChipText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.xs,
   },
 
   // Back row

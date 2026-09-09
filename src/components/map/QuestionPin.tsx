@@ -86,16 +86,16 @@ function QuestionPin({
   // reputationColor resolves asynchronously (a batch fetch after the pins
   // already mounted), so it's included here — otherwise the reputation ring
   // would be drawn but never re-snapshotted onto the frozen native marker.
-  const prevStateKey = useRef(`${mine}|${locked}|${viewed}|${reputationColor ?? ''}`);
+  const prevStateKey = useRef(`${mine}|${locked}|${viewed}|${reputationColor ?? ''}|${question.is_boosted}`);
   useEffect(() => {
-    const next = `${mine}|${locked}|${viewed}|${reputationColor ?? ''}`;
+    const next = `${mine}|${locked}|${viewed}|${reputationColor ?? ''}|${question.is_boosted}`;
     if (prevStateKey.current === next) return;
     prevStateKey.current = next;
     if (!mounted.current) return;
     setTracks(true);
     const t = setTimeout(() => { if (mounted.current) setTracks(false); }, 220);
     return () => clearTimeout(t);
-  }, [mine, locked, viewed, reputationColor]);
+  }, [mine, locked, viewed, reputationColor, question.is_boosted]);
 
   // ── Modal-close refresh: iOS invalidates the marker layer cache on modal
   //    dismiss. Re-enable tracking for 400ms so the map can re-snapshot.
@@ -198,6 +198,15 @@ function QuestionPin({
           }]} />
         )}
 
+        {/* Boost badge (see question_boosts.sql) — the author paid a weekly
+            action to widen this question's reach; the flame is the only
+            signal a VIEWER (not just the author) sees that it's boosted. */}
+        {question.is_boosted && (
+          <View style={[styles.boostBadge, { left: halfW - 10 }]}>
+            <Text style={styles.boostBadgeText}>🔥</Text>
+          </View>
+        )}
+
       </View>
     </Marker>
   );
@@ -244,5 +253,21 @@ const styles = StyleSheet.create({
     fontSize:   10,
     lineHeight: 12,
     color:      '#fff',
+  },
+  boostBadge: {
+    position:       'absolute',
+    top:            -4,
+    width:          18,
+    height:         18,
+    borderRadius:   9,
+    alignItems:     'center',
+    justifyContent: 'center',
+    backgroundColor: palette.accent,
+    borderWidth:    1.5,
+    borderColor:    '#0B0D12',
+  },
+  boostBadgeText: {
+    fontSize:   10,
+    lineHeight: 13,
   },
 });
