@@ -24,6 +24,30 @@ function parseDateKey(key: string): Date {
  *          recent answer is older than yesterday (streak broken) or there
  *          are no answers.
  */
+/**
+ * Dyadic (shared, two-person) streak for a single conversation — Snapchat's
+ * best-documented retention mechanic (30-40 opens/day vs. a personal-only
+ * counter's much weaker pull), because losing it means letting a specific
+ * other person down, not just yourself. Counts consecutive days ending
+ * today or yesterday where BOTH participants sent at least one message.
+ */
+export function computeChatStreak(
+  messages: { sender_id: string; created_at: string }[],
+  userId: string,
+  otherUserId: string,
+  now: Date = new Date(),
+): number {
+  const daysByUser = new Map<string, Set<string>>([[userId, new Set()], [otherUserId, new Set()]]);
+  for (const m of messages) {
+    const set = daysByUser.get(m.sender_id);
+    if (set) set.add(dateKey(new Date(m.created_at)));
+  }
+  const mine = daysByUser.get(userId)!;
+  const theirs = daysByUser.get(otherUserId)!;
+  const bothDays = Array.from(mine).filter((d) => theirs.has(d));
+  return computeAnswerStreak(bothDays.map((d) => new Date(parseDateKey(d)).toISOString()), now);
+}
+
 export function computeAnswerStreak(timestamps: string[], now: Date = new Date()): number {
   if (timestamps.length === 0) return 0;
 

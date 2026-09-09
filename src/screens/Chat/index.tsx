@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
@@ -13,6 +13,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { moderationMenu, reportUserFlow } from '../../lib/moderation';
 import { containsObjectionableContent } from '../../lib/contentFilter';
+import { computeChatStreak } from '../../lib/streak';
 import { palette, fontFamily, fontSize, spacing, radius } from '../../theme/tokens';
 import { contentWidth } from '../../theme/responsive';
 import { RootStackParamList } from '../../navigation';
@@ -196,6 +197,11 @@ export default function ChatScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, profile.id, otherAvatar, otherGender]);
 
+  const chatStreak = useMemo(
+    () => computeChatStreak(messages, profile.id, otherUserId),
+    [messages, profile.id, otherUserId],
+  );
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -218,7 +224,14 @@ export default function ChatScreen() {
         <Avatar avatarKey={otherAvatar} gender={otherGender} size={40} ring />
 
         <View style={styles.headerMeta}>
-          <Text style={styles.headerName}>{otherNickname}</Text>
+          <View style={styles.headerNameRow}>
+            <Text style={styles.headerName}>{otherNickname}</Text>
+            {chatStreak >= 2 && (
+              <View style={styles.streakPill}>
+                <Text style={styles.streakPillText}>🔥 {chatStreak}</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.headerSub}>{t('chat.subtitle')}</Text>
         </View>
 
@@ -332,10 +345,22 @@ const styles = StyleSheet.create({
   },
   back: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   headerMeta: { flex: 1 },
+  headerNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   headerName: {
     fontFamily: fontFamily.bodySemiBold,
     fontSize: fontSize.base,
     color: palette.ink00,
+  },
+  streakPill: {
+    backgroundColor: palette.accent + '22',
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 1,
+  },
+  streakPillText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 11,
+    color: palette.accent,
   },
   headerSub: {
     fontFamily: fontFamily.body,
