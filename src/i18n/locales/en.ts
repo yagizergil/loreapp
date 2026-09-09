@@ -123,6 +123,7 @@ const en = {
     caughtUpTitle: "You're all caught up",
     caughtUpBody: "You've answered everyone reachable nearby. We'll notify you the moment someone new posts.",
     activeNearby:  '{{n}} active nearby',
+    dailyQuestionBadge: 'Question of the Day',
     noMatchTitle: 'No questions match',
     noMatchBody:  'Try a different filter or search term.',
     clearFilters: 'Clear filters',

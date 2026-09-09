@@ -123,6 +123,7 @@ const tr = {
     caughtUpTitle: 'Herkese cevap verdin',
     caughtUpBody: 'Yakınında ulaşabildiğin herkese cevap verdin. Biri yeni bir soru sorduğunda sana haber vereceğiz.',
     activeNearby:  'Yakında {{n}} kişi aktif',
+    dailyQuestionBadge: 'Günün Sorusu',
     noMatchTitle: 'Eşleşen soru yok',
     noMatchBody:  'Farklı bir filtre veya arama terimi dene.',
     clearFilters: 'Filtreleri temizle',

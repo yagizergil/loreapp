@@ -269,6 +269,11 @@ export default function QuestionSheet({
                     <Text style={[styles.typeText, { color: badgeMeta.color }]}>{t(`badge.${badge}`)}</Text>
                   </View>
                 )}
+                {question.is_daily_question && (
+                  <View style={[styles.typePill, { backgroundColor: '#D4A64A22', borderColor: '#D4A64A55' }]}>
+                    <Text style={[styles.typeText, { color: '#D4A64A' }]}>🌟 {t('map.dailyQuestionBadge')}</Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.timeText}>{timeAgo(question.created_at)}</Text>
             </View>

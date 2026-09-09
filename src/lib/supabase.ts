@@ -60,6 +60,10 @@ export interface Question {
   /** True while a premium "boost" (see question_boosts.sql) has widened
    *  this question's reach beyond the viewer's normal radius. */
   is_boosted?: boolean;
+  /** Today's shared, city-wide "Question of the Day" (see
+   *  daily_question.sql) — surfaced to everyone in the city regardless of
+   *  normal radius, sorted first. */
+  is_daily_question?: boolean;
 }
 
 export interface Answer {

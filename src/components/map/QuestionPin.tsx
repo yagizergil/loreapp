@@ -201,9 +201,18 @@ function QuestionPin({
         {/* Boost badge (see question_boosts.sql) — the author paid a weekly
             action to widen this question's reach; the flame is the only
             signal a VIEWER (not just the author) sees that it's boosted. */}
-        {question.is_boosted && (
+        {question.is_boosted && !question.is_daily_question && (
           <View style={[styles.boostBadge, { left: halfW - 10 }]}>
             <Text style={styles.boostBadgeText}>🔥</Text>
+          </View>
+        )}
+
+        {/* Question of the Day (see daily_question.sql) — takes priority
+            over the boost flame if somehow both are true, since this is
+            the rarer, higher-priority signal (one per city per day). */}
+        {question.is_daily_question && (
+          <View style={[styles.dailyBadge, { left: halfW - 10 }]}>
+            <Text style={styles.boostBadgeText}>🌟</Text>
           </View>
         )}
 
@@ -269,5 +278,17 @@ const styles = StyleSheet.create({
   boostBadgeText: {
     fontSize:   10,
     lineHeight: 13,
+  },
+  dailyBadge: {
+    position:       'absolute',
+    top:            -4,
+    width:          18,
+    height:         18,
+    borderRadius:   9,
+    alignItems:     'center',
+    justifyContent: 'center',
+    backgroundColor: '#D4A64A',
+    borderWidth:    1.5,
+    borderColor:    '#0B0D12',
   },
 });
