@@ -16,6 +16,14 @@
 -- Premium "boost" (see question_boosts.sql) surfaces a boosted question to
 -- viewers OUTSIDE their normal radius, up to p_fallback_m, sorted first —
 -- that reach is what the boost actually buys.
+--
+-- Light algorithmic layer on top of the proximity feed (TikTok-style "base
+-- filter + relevance ranking", scaled down): proximity stays the primary
+-- signal (this is fundamentally a "who's near me" app), but a currently
+-- "hot" question (< 6h old AND >= 3 answers — same definition as the
+-- client's getQuestionBadge, replicated here) now sorts ahead of cooler
+-- questions within the same 200m distance ring, instead of pure
+-- distance-only ordering.
 drop function if exists questions_around(float, float, float, int, int, float);
 create or replace function questions_around(
   p_lat        float,
@@ -54,32 +62,41 @@ begin
   v_radius := case when v_count >= p_min then p_premium_m else p_fallback_m end;
 
   return query
-    select * from (
-      select
-        q.id, q.author_id, q.body, q.type, q.options, q.geom,
-        q.answer_count, q.created_at,
-        st_y(q.geom::geometry) as lat,
-        st_x(q.geom::geometry) as lng,
-        st_distance(q.geom, v_pt) as dist_m,
-        (q.boosted_until is not null and q.boosted_until > now()) as is_boosted
-      from questions q
-      where st_dwithin(q.geom, v_pt, v_radius)
+    select
+      c.id, c.author_id, c.body, c.type, c.options, c.geom,
+      c.answer_count, c.created_at, c.lat, c.lng, c.dist_m, c.is_boosted
+    from (
+      select * from (
+        select
+          q.id, q.author_id, q.body, q.type, q.options, q.geom,
+          q.answer_count, q.created_at,
+          st_y(q.geom::geometry) as lat,
+          st_x(q.geom::geometry) as lng,
+          st_distance(q.geom, v_pt) as dist_m,
+          (q.boosted_until is not null and q.boosted_until > now()) as is_boosted
+        from questions q
+        where st_dwithin(q.geom, v_pt, v_radius)
 
-      union
+        union
 
-      select
-        q.id, q.author_id, q.body, q.type, q.options, q.geom,
-        q.answer_count, q.created_at,
-        st_y(q.geom::geometry) as lat,
-        st_x(q.geom::geometry) as lng,
-        st_distance(q.geom, v_pt) as dist_m,
-        true as is_boosted
-      from questions q
-      where q.boosted_until is not null
-        and q.boosted_until > now()
-        and st_dwithin(q.geom, v_pt, p_fallback_m)
-    ) combined
-    order by is_boosted desc, dist_m asc
+        select
+          q.id, q.author_id, q.body, q.type, q.options, q.geom,
+          q.answer_count, q.created_at,
+          st_y(q.geom::geometry) as lat,
+          st_x(q.geom::geometry) as lng,
+          st_distance(q.geom, v_pt) as dist_m,
+          true as is_boosted
+        from questions q
+        where q.boosted_until is not null
+          and q.boosted_until > now()
+          and st_dwithin(q.geom, v_pt, p_fallback_m)
+      ) combined
+    ) c
+    order by
+      c.is_boosted desc,
+      floor(c.dist_m / 200) asc,
+      (c.created_at > now() - interval '6 hours' and c.answer_count >= 3) desc,
+      c.dist_m asc
     limit p_max;
 end;
 $$;
