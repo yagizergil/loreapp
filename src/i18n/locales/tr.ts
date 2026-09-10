@@ -302,6 +302,8 @@ const tr = {
       location:         'Konum verisi',
       locationValue:    'Kaydedilmiyor',
       manageSubscription: 'Aboneliği Yönet',
+      upgradeToPro:     "Pro'ya Geç",
+      upgradeToProSub:  'Sınırsız cevap, Merhaba De, boost ve daha fazlasının kilidini aç.',
       rateApp:          'Uygulamamızı Değerlendir',
       reportAbuse:        'Kötüye Kullanım veya Uygunsuz İçerik Bildir',
       reportAbuseSubject: 'Lore — Bildirim: Uygunsuz içerik veya kullanıcı',

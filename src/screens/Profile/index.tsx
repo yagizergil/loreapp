@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import Constants from 'expo-constants';
 import { LINKS } from '../../lib/links';
+import { paywallEvents } from '../../lib/premiumEvents';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
@@ -368,6 +369,20 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Always-visible, obvious entry point to the paywall/subscription
+            screen (Guideline 2.1(b): reviewers must be able to locate the
+            In-App Purchases without first hitting a specific usage limit —
+            every other paywall trigger in the app is conditional). */}
+        {!isPremium && (
+          <TouchableOpacity style={s.upgradeCard} activeOpacity={0.85} onPress={() => paywallEvents.show('profile')}>
+            <IconStar color={palette.accent} size={ICON_SIZE} strokeWidth={ICON_STROKE} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.upgradeTitle}>{t('profile.rows.upgradeToPro')}</Text>
+              <Text style={s.upgradeSub}>{t('profile.rows.upgradeToProSub')}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* ── Aktivite ── */}
         <Section title={t('profile.sections.activity')}>
           <SettingRow
@@ -665,6 +680,20 @@ const s = StyleSheet.create({
     padding: spacing.lg,
     ...shadow.sm,
   },
+  upgradeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
+    backgroundColor: palette.accentDim,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: palette.accent + '55',
+    padding: spacing.base,
+  },
+  upgradeTitle: { fontFamily: fontFamily.bodySemiBold, fontSize: fontSize.base, color: palette.ink00 },
+  upgradeSub: { fontFamily: fontFamily.body, fontSize: fontSize.xs, color: palette.ink40, marginTop: 2 },
   heroTop: {
     flexDirection: 'row',
     alignItems: 'center',

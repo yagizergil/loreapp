@@ -23,7 +23,7 @@ import Animated, {
 import {
   Question, QuestionType, Answer, Profile, AuthorReputation,
   fetchAnswers, submitAnswer, fetchProfiles, countTodayAnswers, FREE_DAILY_ANSWER_LIMIT,
-  fetchBlockedIds, toggleAnswerUpvote, fetchUpvotedAnswerIds, deleteOwnAnswer, logQuestionView,
+  fetchBlockedIds, toggleAnswerUpvote, fetchUpvotedAnswerIds, deleteOwnAnswer, deleteOwnQuestion, logQuestionView,
   fetchAuthorKarma, maybeGrantSurpriseKarma,
 } from '../../lib/supabase';
 import { surpriseKarmaEvents } from '../../lib/surpriseKarmaEvents';
@@ -38,7 +38,7 @@ import { moderationMenu, reportAnswerFlow } from '../../lib/moderation';
 import { containsObjectionableContent } from '../../lib/contentFilter';
 import { getKarmaTier } from '../../lib/karma';
 import { cancelStreakRiskWarning } from '../../lib/notifications';
-import { IconShareOutline } from '../../components/ui/Icons';
+import { IconShareOutline, IconTrash } from '../../components/ui/Icons';
 import ShareCard from '../../components/ShareCard';
 import { palette, fontFamily, fontSize, spacing, radius, shadow } from '../../theme/tokens';
 import AvatarView from '../../components/ui/Avatar';
@@ -684,6 +684,31 @@ export default function AnswersScreen() {
     finally { setSubmitting(false); }
   }
 
+  // ── Delete own question (Guideline 1.2: immediate removal, reachable
+  //    directly from the "My Questions" feed → this detail screen, not
+  //    buried only inside the map pin's sheet) ──────────────────────────────
+  function handleDeleteQuestion() {
+    Alert.alert(
+      t('ownPost.deleteQuestionTitle'),
+      t('ownPost.deleteQuestionMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('ownPost.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteOwnQuestion(question.id, profileId);
+              navigation.goBack();
+            } catch {
+              Alert.alert(t('common.error'), t('ownPost.deleteError'));
+            }
+          },
+        },
+      ],
+    );
+  }
+
   // ── Delete own answer (Guideline 1.2: immediate removal) ─────────────────────
   function handleDeleteAnswer(answerId: string) {
     Alert.alert(
@@ -845,13 +870,26 @@ export default function AnswersScreen() {
           <View style={s.chevron} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{isVotable ? t('answers.votingTitle') : t('answers.title')}</Text>
-        <TouchableOpacity
-          style={s.backBtn}
-          activeOpacity={0.7}
-          onPress={() => { track('share_card_opened'); setShowShareCard(true); }}
-        >
-          <IconShareOutline color={palette.ink20} size={20} strokeWidth={1.8} />
-        </TouchableOpacity>
+        <View style={s.headerActions}>
+          {question.author_id === profileId && (
+            <TouchableOpacity
+              style={s.backBtn}
+              activeOpacity={0.7}
+              onPress={handleDeleteQuestion}
+              accessibilityRole="button"
+              accessibilityLabel={t('sheet.deleteQuestion')}
+            >
+              <IconTrash color={palette.ink20} size={19} strokeWidth={1.8} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={s.backBtn}
+            activeOpacity={0.7}
+            onPress={() => { track('share_card_opened'); setShowShareCard(true); }}
+          >
+            <IconShareOutline color={palette.ink20} size={20} strokeWidth={1.8} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {showShareCard && (
@@ -947,6 +985,7 @@ const s = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.ink60,
   },
   backBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
   chevron: {
     width: 9, height: 9,
     borderLeftWidth: 2.5, borderBottomWidth: 2.5, borderColor: palette.ink10,

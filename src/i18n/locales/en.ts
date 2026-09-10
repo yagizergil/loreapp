@@ -302,6 +302,8 @@ const en = {
       location:         'Location data',
       locationValue:    'Not stored',
       manageSubscription: 'Manage Subscription',
+      upgradeToPro:     'Upgrade to Pro',
+      upgradeToProSub:  'Unlock unlimited answers, Say Hi, boosts and more.',
       rateApp:          'Rate the App',
       reportAbuse:        'Report Abuse or Inappropriate Content',
       reportAbuseSubject: 'Lore — Report: Inappropriate content or user',
